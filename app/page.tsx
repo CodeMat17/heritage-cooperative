@@ -1,103 +1,461 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import {
+  Award,
+  BadgePercent,
+  Banknote,
+  Diamond,
+  Gem,
+  LineChart,
+  Medal,
+  Trophy,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+
+type Tier = {
+  id: string;
+  name: string;
+  daily: number;
+  durationDays: number;
+  loan: number;
+  blurb: string;
+};
+
+const TIERS: Tier[] = [
+  {
+    id: "bronze",
+    name: "Bronze",
+    daily: 500,
+    durationDays: 90,
+    loan: 100_000,
+    blurb: "Entry plan to build consistency with minimal daily amount.",
+  },
+  {
+    id: "silver",
+    name: "Silver",
+    daily: 1_000,
+    durationDays: 90,
+    loan: 180_000,
+    blurb: "Balanced plan for steady savers aiming bigger.",
+  },
+  {
+    id: "gold",
+    name: "Gold",
+    daily: 2_000,
+    durationDays: 90,
+    loan: 360_000,
+    blurb: "Accelerate growth with double the momentum.",
+  },
+  {
+    id: "diamond",
+    name: "Diamond",
+    daily: 5_000,
+    durationDays: 90,
+    loan: 1_000_000,
+    blurb: "High-capacity plan for ambitious targets.",
+  },
+  {
+    id: "emerald",
+    name: "Emerald",
+    daily: 10_000,
+    durationDays: 90,
+    loan: 2_000_000,
+    blurb: "Elite plan for maximum leverage and returns.",
+  },
+];
+
+const ALLOWED_DAILY: number[] = [500, 1000, 2000, 5000, 10000];
+
+function naira(n: number) {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+function renderTierIcon(tierId: Tier["id"]) {
+  if (tierId === "bronze") {
+    return (
+      <span className='h-11 w-11 grid place-items-center rounded-lg bg-amber-500/10 ring-1 ring-amber-500/20'>
+        <Medal className='h-6 w-6 text-amber-600' />
+      </span>
+    );
+  }
+  if (tierId === "silver") {
+    return (
+      <span className='h-11 w-11 grid place-items-center rounded-lg bg-gray-400/10 ring-1 ring-gray-400/20'>
+        <Award className='h-6 w-6 text-gray-400' />
+      </span>
+    );
+  }
+  if (tierId === "gold") {
+    return (
+      <span className='h-11 w-11 grid place-items-center rounded-lg bg-yellow-500/10 ring-1 ring-yellow-500/20'>
+        <Trophy className='h-6 w-6 text-yellow-500' />
+      </span>
+    );
+  }
+  if (tierId === "diamond") {
+    return (
+      <span className='h-11 w-11 grid place-items-center rounded-lg bg-sky-400/10 ring-1 ring-sky-400/20'>
+        <Diamond className='h-6 w-6 text-sky-400' />
+      </span>
+    );
+  }
+  // emerald
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <span className='h-11 w-11 grid place-items-center rounded-lg bg-emerald-400/10 ring-1 ring-emerald-400/20'>
+      <Gem className='h-6 w-6 text-emerald-400' />
+    </span>
+  );
+}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+function getTierButtonClasses(tierId: Tier["id"]): string {
+  if (tierId === "bronze") {
+    return "bg-amber-500/10 hover:bg-amber-500/20 ring-1 ring-amber-500/20";
+  }
+  if (tierId === "silver") {
+    return "bg-gray-400/10 hover:bg-gray-400/20 ring-1 ring-gray-400/20";
+  }
+  if (tierId === "gold") {
+    return "bg-yellow-500/10 hover:bg-yellow-500/20 ring-1 ring-yellow-500/20";
+  }
+  if (tierId === "diamond") {
+    return "bg-sky-400/10 hover:bg-sky-400/20 ring-1 ring-sky-400/20";
+  }
+  return "bg-emerald-400/10 hover:bg-emerald-400/20 ring-1 ring-emerald-400/20";
+}
+
+export default function HomePage() {
+  // Calculator state (discrete tiers only)
+  const [amountIndex, setAmountIndex] = useState<number>(1);
+  const dailyAmount: number = ALLOWED_DAILY[amountIndex];
+  const applicableTier =
+    TIERS.find((tier) => tier.daily === dailyAmount) || TIERS[0];
+  const totalAfter90 = dailyAmount * 90;
+
+  return (
+    <div className='grid gap-16 px-4 py-12 max-w-7xl mx-auto'>
+      {/* Hero Section */}
+      <section className='grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center'>
+        <div className='space-y-5'>
+          <motion.h1
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className='text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight'>
+            Save Smart, Grow Strong
+          </motion.h1>
+          <p className='text-muted-foreground max-w-2xl text-lg leading-6 font-medium'>
+            Welcome to Heritage Multipurpose Cooperative platform - where you
+            grow savings daily, track your progress effortlessly and unlock
+            tailored loans after 90 days.
+          </p>
+          <div className='flex flex-wrap gap-2'>
+            <span className='inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 shadow-md'>
+              <Banknote className='h-3.5 w-3.5' /> Savings
+            </span>
+            <span className='inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 shadow-md'>
+              <LineChart className='h-3.5 w-3.5' /> Investments
+            </span>
+            <span className='inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 shadow-md'>
+              <BadgePercent className='h-3.5 w-3.5' /> Loans
+            </span>
+          </div>
+          <div className='flex gap-3 pt-2'>
+            <Button asChild>
+              <Link href='/sign-up'>Create account</Link>
+            </Button>
+
+            <Button asChild variant={"outline"}>
+              <Link href='/dashboard'>Go to dashboard</Link>
+            </Button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className='grid grid-cols-2 gap-4'>
+          <motion.div
+            whileHover={{ y: -2 }}
+            initial={{ y: 0 }}
+            animate={{ y: [0, -8, 0] }}
+            transition={{
+              duration: 2.4,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0,
+            }}
+            className='group relative overflow-hidden rounded-2xl border p-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md bg-gradient-to-br from-emerald-500/30 via-emerald-500/10 to-cyan-500/25 ring-1 ring-emerald-500/30 shadow-lg shadow-emerald-500/10'>
+            <div
+              aria-hidden
+              className='pointer-events-none absolute -top-10 -right-12 h-32 w-32 rounded-full bg-emerald-400/40 blur-2xl opacity-90'
+            />
+            <div
+              aria-hidden
+              className='pointer-events-none absolute -bottom-14 -left-14 h-36 w-36 rounded-full bg-cyan-400/35 blur-2xl opacity-80'
+            />
+            <div className='relative z-10 flex flex-col items-start gap-2'>
+              <div className='h-10 w-10 grid place-items-center rounded-xl ring-cyan-500/25 dark:bg-white/15 ring-1 dark:ring-white/30 shadow-lg'>
+                <Banknote className='h-5 w-5 dark:text-emerald-200' />
+              </div>
+              <div className='font-semibold'>Daily Savings</div>
+              <p className='text-sm text-gray-600 dark:text-gray-400'>
+                Automate or contribute manually and grow steadily.
+              </p>
+            </div>
+          </motion.div>
+          <motion.div
+            whileHover={{ y: -2 }}
+            initial={{ y: 0 }}
+            animate={{ y: [0, -9, 0] }}
+            transition={{
+              duration: 2.6,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.35,
+            }}
+            className='group relative overflow-hidden rounded-2xl border p-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md bg-gradient-to-br from-fuchsia-500/30 via-pink-500/10 to-rose-500/25 ring-1 ring-fuchsia-500/30 shadow-lg shadow-fuchsia-500/10'>
+            <div
+              aria-hidden
+              className='pointer-events-none absolute -top-12 -left-10 h-32 w-32 rounded-full bg-fuchsia-400/40 blur-2xl opacity-90'
+            />
+            <div
+              aria-hidden
+              className='pointer-events-none absolute -bottom-10 -right-12 h-32 w-32 rounded-full bg-rose-400/35 blur-2xl opacity-80'
+            />
+            <div className='relative z-10 flex flex-col items-start gap-2'>
+              <div className='h-10 w-10 grid place-items-center rounded-xl bg-white/15 ring-1 ring-fuchsia-500/25 dark:ring-white/30 shadow-lg'>
+                <BadgePercent className='h-5 w-5 dark:text-rose-200' />
+              </div>
+              <div className='font-semibold'>Loan Access</div>
+              <p className='text-sm text-gray-600 dark:text-gray-400'>
+                Unlock loan entitlement after 90 days of consistency.
+              </p>
+            </div>
+          </motion.div>
+          <motion.div
+            whileHover={{ y: -2 }}
+            initial={{ y: 0 }}
+            animate={{ y: [0, -7, 0] }}
+            transition={{
+              duration: 2.2,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.7,
+            }}
+            className='group relative overflow-hidden rounded-2xl border p-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md bg-gradient-to-br from-indigo-500/30 via-sky-500/10 to-blue-500/25 ring-1 ring-indigo-500/30 shadow-lg shadow-indigo-500/10'>
+            <div
+              aria-hidden
+              className='pointer-events-none absolute -top-12 -right-10 h-32 w-32 rounded-full bg-indigo-400/40 blur-2xl opacity-90'
+            />
+            <div
+              aria-hidden
+              className='pointer-events-none absolute -bottom-12 -left-10 h-32 w-32 rounded-full bg-sky-400/35 blur-2xl opacity-80'
+            />
+            <div className='relative z-10 flex flex-col items-start gap-2'>
+              <div className='h-10 w-10 grid place-items-center rounded-xl bg-white/15 ring-1 ring-blue-500/25 dark:ring-white/30 shadow-lg'>
+                <LineChart className='h-5 w-5 dark:text-sky-200' />
+              </div>
+              <div className='font-semibold'>Progress Tracking</div>
+              <p className='text-sm text-gray-600 dark:text-gray-400'>
+                See trends, streaks, and milestones at a glance.
+              </p>
+            </div>
+          </motion.div>
+          <motion.div
+            whileHover={{ y: -2 }}
+            initial={{ y: 0 }}
+            animate={{ y: [0, -10, 0] }}
+            transition={{
+              duration: 2.8,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 1.05,
+            }}
+            className='group relative overflow-hidden rounded-2xl border p-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md bg-gradient-to-br from-amber-500/30 via-yellow-500/10 to-orange-500/25 ring-1 ring-amber-500/30 shadow-lg shadow-amber-500/10'>
+            <div
+              aria-hidden
+              className='pointer-events-none absolute -top-10 -left-12 h-32 w-32 rounded-full bg-amber-400/40 blur-2xl opacity-90'
+            />
+            <div
+              aria-hidden
+              className='pointer-events-none absolute -bottom-14 -right-14 h-36 w-36 rounded-full bg-orange-400/35 blur-2xl opacity-80'
+            />
+            <div className='relative z-10 flex flex-col items-start gap-2'>
+              <div className='h-10 w-10 grid place-items-center rounded-xl bg-white/15 ring-1 ring-orange-500/25 dark:ring-white/30 shadow-lg'>
+                <Banknote className='h-5 w-5 dark:text-amber-200' />
+              </div>
+              <div className='font-semibold'>Flexible Tiers</div>
+              <p className='text-sm text-gray-600 dark:text-gray-400'>
+                Choose a plan that matches your goals and upgrade anytime.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Tiers Section */}
+      <section className='grid gap-6'>
+        <div>
+          <h2 className='text-2xl md:text-3xl font-bold tracking-tight'>
+            Membership Tiers
+          </h2>
+          <p className='text-muted-foreground max-w-lg'>
+            Choose a tier to start daily savings. After 90 days of consistency,
+            unlock your loan entitlement.
+          </p>
+        </div>
+        <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+          {TIERS.map((t) => (
+            <motion.div
+              key={t.id}
+              whileHover={{ y: -2 }}
+              className='rounded-xl border bg-card p-5 shadow-md'>
+              <div className='flex items-baseline justify-between'>
+                <div className='flex items-center gap-2'>
+                  {renderTierIcon(t.id)}
+                  <h3 className='text-lg font-semibold capitalize'>{t.name}</h3>
+                </div>
+                <span className='text-xs rounded-full border px-2 py-0.5'>
+                  90 days
+                </span>
+              </div>
+              <p className='mt-1 text-sm text-muted-foreground'>{t.blurb}</p>
+              <div className='mt-4 grid gap-1 text-sm'>
+                <div>
+                  Daily Contribution:{" "}
+                  <span className='font-medium'>{naira(t.daily)}</span>
+                </div>
+                <div>
+                  Duration:{" "}
+                  <span className='font-medium'>{t.durationDays} days</span>
+                </div>
+                <div>
+                  Loan Entitlement:{" "}
+                  <span className='font-medium'>{naira(t.loan)}</span>
+                </div>
+              </div>
+              <div className='mt-4 flex gap-2'>
+                <Link
+                  href={`/sign-up`}
+                  className={`h-9 inline-flex items-center rounded-md px-3 hover:opacity-90 ${getTierButtonClasses(t.id)}`}>
+                  Select {t.name}
+                </Link>
+                <Link
+                  href={`/tiers/${t.id}`}
+                  className='h-9 inline-flex items-center rounded-md border px-3 hover:bg-muted'>
+                  Learn more
+                </Link>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className='grid gap-6'>
+        <div>
+          <h2 className='text-2xl md:text-3xl font-bold tracking-tight'>
+            How it works
+          </h2>
+          <p className='text-muted-foreground'>
+            Join → Save daily → Unlock loan in 90 days.
+          </p>
+        </div>
+        <div className='grid gap-4 sm:grid-cols-3'>
+          <div className='rounded-xl border bg-card p-5'>
+            <div className='flex items-center gap-3'>
+              <span className='h-10 w-10 grid place-items-center rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/20'>
+                <Medal className='h-5 w-5 text-emerald-500' />
+              </span>
+              <h3 className='font-semibold'>Join</h3>
+            </div>
+            <p className='mt-2 text-sm text-muted-foreground'>
+              Create your free account in minutes.
+            </p>
+          </div>
+          <div className='rounded-xl border bg-card p-5'>
+            <div className='flex items-center gap-3'>
+              <span className='h-10 w-10 grid place-items-center rounded-lg bg-blue-500/10 ring-1 ring-blue-500/20'>
+                <Banknote className='h-5 w-5 text-blue-500' />
+              </span>
+              <h3 className='font-semibold'>Save daily</h3>
+            </div>
+            <p className='mt-2 text-sm text-muted-foreground'>
+              Automate or contribute manually every day.
+            </p>
+          </div>
+          <div className='rounded-xl border bg-card p-5'>
+            <div className='flex items-center gap-3'>
+              <span className='h-10 w-10 grid place-items-center rounded-lg bg-amber-500/10 ring-1 ring-amber-500/20'>
+                <BadgePercent className='h-5 w-5 text-amber-500' />
+              </span>
+              <h3 className='font-semibold'>Unlock loan</h3>
+            </div>
+            <p className='mt-2 text-sm text-muted-foreground'>
+              After 90 days of consistency, access your entitlement.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Savings & Loan Calculator */}
+      <section className='grid gap-6'>
+        <div>
+          <h2 className='text-2xl md:text-3xl font-bold tracking-tight'>
+            Savings & Loan Calculator
+          </h2>
+          <p className='text-muted-foreground'>
+            Preview your 90-day savings and estimated loan entitlement.
+          </p>
+        </div>
+        <div className='rounded-xl border bg-card p-5'>
+          <div className='grid gap-4'>
+            <div className='flex items-center justify-between'>
+              <div className='text-sm text-muted-foreground'>Daily amount</div>
+              <div className='font-semibold'>{naira(dailyAmount)}</div>
+            </div>
+            <input
+              type='range'
+              min={0}
+              max={ALLOWED_DAILY.length - 1}
+              step={1}
+              value={amountIndex}
+              onChange={(e) => setAmountIndex(Number(e.target.value))}
+              className='w-full'
+              list='daily-steps'
+            />
+            <datalist id='daily-steps'>
+              {ALLOWED_DAILY.map((v, i) => (
+                <option key={i} value={i} label={naira(v)} />
+              ))}
+            </datalist>
+            <div className='flex justify-between text-xs text-muted-foreground'>
+              {ALLOWED_DAILY.map((v) => (
+                <span key={v}>{naira(v)}</span>
+              ))}
+            </div>
+            <div className='grid gap-1 text-sm'>
+              <div>
+                After 90 days you’ll have{" "}
+                <span className='font-medium'>{naira(totalAfter90)}</span>
+              </div>
+              <div>
+                Estimated loan entitlement:{" "}
+                <span className='font-medium'>
+                  {naira(applicableTier.loan)}
+                </span>{" "}
+                ({applicableTier.name})
+              </div>
+            </div>
+            {/* <div className='pt-1 text-xs text-muted-foreground'>
+              Based on the nearest membership tier to your daily amount.
+            </div> */}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,0 +1,190 @@
+{
+  "user": {
+    "email": "demo@heritagecoop.test",
+    "password": "password",
+    "status": "pending",
+    "createdAtIso": "2025-01-01T00:00:00.000Z",
+    "categoryId": null,
+    "joinDateIso": null
+  },
+  "wallet": { "balanceNaira": 45000 },
+  "transactions": [
+    {
+      "id": "1",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-15T08:30:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "2",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-14T09:15:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "3",
+      "type": "fund",
+      "amountNaira": 10000,
+      "createdAtIso": "2025-01-13T14:20:00.000Z",
+      "note": "Initial wallet funding"
+    },
+    {
+      "id": "4",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-13T07:45:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "5",
+      "type": "withdrawal",
+      "amountNaira": 5000,
+      "createdAtIso": "2025-01-12T16:30:00.000Z",
+      "note": "Emergency withdrawal"
+    },
+    {
+      "id": "6",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-12T08:00:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "7",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-11T09:30:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "8",
+      "type": "fund",
+      "amountNaira": 5000,
+      "createdAtIso": "2025-01-10T11:20:00.000Z",
+      "note": "Additional funding"
+    },
+    {
+      "id": "9",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-10T08:15:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "10",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-09T07:50:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "11",
+      "type": "withdrawal",
+      "amountNaira": 2000,
+      "createdAtIso": "2025-01-08T15:45:00.000Z",
+      "note": "Partial withdrawal"
+    },
+    {
+      "id": "12",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-08T08:30:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "13",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-07T09:00:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "14",
+      "type": "fund",
+      "amountNaira": 15000,
+      "createdAtIso": "2025-01-06T13:10:00.000Z",
+      "note": "Monthly funding"
+    },
+    {
+      "id": "15",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-06T08:20:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "16",
+      "type": "loan",
+      "amountNaira": 100000,
+      "createdAtIso": "2025-01-05T10:00:00.000Z",
+      "note": "Loan disbursement - Business expansion"
+    },
+    {
+      "id": "17",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-05T08:00:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "18",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-04T07:30:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "19",
+      "type": "fund",
+      "amountNaira": 8000,
+      "createdAtIso": "2025-01-03T12:15:00.000Z",
+      "note": "Salary deposit"
+    },
+    {
+      "id": "20",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-03T08:45:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "21",
+      "type": "loan",
+      "amountNaira": 50000,
+      "createdAtIso": "2025-01-02T14:20:00.000Z",
+      "note": "Loan disbursement - Home renovation"
+    },
+    {
+      "id": "22",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-02T08:15:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "23",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2025-01-01T09:00:00.000Z",
+      "note": "Daily contribution"
+    },
+    {
+      "id": "24",
+      "type": "fund",
+      "amountNaira": 20000,
+      "createdAtIso": "2024-12-31T16:30:00.000Z",
+      "note": "Year-end bonus"
+    },
+    {
+      "id": "25",
+      "type": "contribution",
+      "amountNaira": 500,
+      "createdAtIso": "2024-12-31T08:00:00.000Z",
+      "note": "Daily contribution"
+    }
+  ],
+  "contributions": [],
+  "goals": []
+}
