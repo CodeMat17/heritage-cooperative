@@ -26,7 +26,7 @@ export default function WalletPage() {
           Select a category first to start saving.
         </div>
       )}
-      <WalletCard publicKey={process.env.SQUAD_PUBLIC_KEY} />
+      <WalletCard />
       <Link href='/wallet/history' className='text-sm underline w-fit'>
         Contribution History
       </Link>
