@@ -15,6 +15,7 @@ export default function CategoryDetailPage() {
   }
 
   function handleSelect() {
+    if (!category) return;
     const user = getUser();
     if (!user) return router.push("/");
     // Enforce single category; allow upgrade only
