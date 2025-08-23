@@ -3,7 +3,6 @@
 import AccountSummary from "@/components/AccountSummary";
 import ContribSparkline from "@/components/ContribSparkline";
 import ContributeBanner from "@/components/ContributeBanner";
-import DailyContribution from "@/components/DailyContribution";
 import LoanDueBanner from "@/components/LoanDueBanner";
 import StreakCard from "@/components/StreakCard";
 import { getUser } from "@/lib/storage";
@@ -42,7 +41,7 @@ export default function AccountPage() {
       <LoanDueBanner />
       <ContribSparkline />
       <StreakCard />
-      <DailyContribution />
+     
       <div className='flex gap-4'>
         <Link
           href='/account/goals'
