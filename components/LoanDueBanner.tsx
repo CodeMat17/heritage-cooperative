@@ -30,7 +30,7 @@ export default function LoanDueBanner() {
   return (
     <div className='rounded-xl border p-4 bg-green-50 dark:bg-green-900/30 text-green-900 dark:text-green-100'>
       <div className='text-sm font-medium'>
-        Congratulations! You're now eligible to request a loan for your{" "}
+        Congratulations! You&apos;re now eligible to request a loan for your{" "}
         {category.name} plan.
       </div>
     </div>
