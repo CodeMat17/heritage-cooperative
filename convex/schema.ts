@@ -53,6 +53,49 @@ export default defineSchema({
     nokHouseAddress: v.string(),
   }).index("by_clerkUserId", ["clerkUserId"]),
 
+  userContributions: defineTable({
+    clerkUserId: v.string(),
+    fullName: v.string(),
+    email: v.string(),
+
+    // Squad transaction details
+    transactionRef: v.string(),
+    gatewayRef: v.optional(v.string()),
+    amount: v.number(), // Amount in kobo (as received from Squad)
+    merchantAmount: v.number(), // Merchant amount in kobo
+    currency: v.string(),
+    transactionStatus: v.string(),
+    transactionType: v.string(), // "Card", "Bank", "Ussd", "MerchantUssd"
+
+    // Payment information
+    paymentType: v.optional(v.string()),
+    cardType: v.optional(v.string()),
+    pan: v.optional(v.string()),
+    tokenId: v.optional(v.string()),
+    customerMobile: v.optional(v.string()),
+    isRecurring: v.optional(v.boolean()),
+
+    // Metadata
+    meta: v.optional(v.any()),
+    merchantId: v.optional(v.string()),
+
+    // Timestamps
+    squadCreatedAt: v.string(), // Squad's created_at timestamp
+    processedAt: v.number(), // When we processed the webhook
+
+    // Processing status
+    isProcessed: v.boolean(), // To prevent double processing
+    processingNotes: v.optional(v.string()),
+
+    // Payment month
+    paymentMonth: v.optional(v.string()), // "January", "February", etc.
+  })
+    .index("by_clerkUserId", ["clerkUserId"])
+    .index("by_transactionRef", ["transactionRef"])
+    .index("by_email", ["email"])
+    .index("by_status", ["transactionStatus"])
+    .index("by_processed", ["isProcessed"]),
+
   loanApplications: defineTable({
     clerkUserId: v.string(),
     fullName: v.string(),

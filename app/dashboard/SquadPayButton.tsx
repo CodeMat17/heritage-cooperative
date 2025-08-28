@@ -10,6 +10,7 @@ interface SquadPayProps {
   email: string;
   amount: number; // Amount in Naira (will be multiplied by 100 internally)
   publicKey: string;
+  paymentMonth?: string; // Month the payment is for
   onSuccess?: () => void;
   onClose?: () => void;
   onLoad?: () => void;
@@ -25,6 +26,7 @@ interface SquadOptions {
   amount: number;
   currency_code: string;
   callback_url: string;
+  meta?: Record<string, string>;
 }
 
 interface SquadInstance {
@@ -50,6 +52,7 @@ export default function SquadPayButton({
   email,
   amount,
   publicKey,
+  paymentMonth,
   onSuccess,
   onClose,
   onLoad,
@@ -57,7 +60,11 @@ export default function SquadPayButton({
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const squadInstanceRef = useRef<SquadInstance | null>(null);
   const router = useRouter();
-  const callbackUrl = "https://www.heritage-cooperative/dashboard";
+
+  // Dynamic callback URL based on environment
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const callbackUrl = `${baseUrl}/dashboard`;
+  const webhookUrl = `${baseUrl}/api/webhooks/squad`;
 
   // Dynamically load Squad script
   useEffect(() => {
@@ -105,6 +112,7 @@ export default function SquadPayButton({
       amount: amount * 100, // Convert to kobo (NGN)
       currency_code: "NGN",
       callback_url: callbackUrl,
+      meta: paymentMonth ? { paymentMonth } : undefined,
     };
 
     squadInstanceRef.current = new window.squad(options);
@@ -118,6 +126,7 @@ export default function SquadPayButton({
     onLoad,
     publicKey,
     router,
+    callbackUrl,
   ]);
 
   const handlePayment = () => {
@@ -172,6 +181,7 @@ export default function SquadPayButton({
         amount: amount * 100,
         currency_code: "NGN",
         callback_url: callbackUrl,
+        meta: paymentMonth ? { paymentMonth } : undefined,
       };
       squadInstanceRef.current = new window.squad(options);
       squadInstanceRef.current.setup();

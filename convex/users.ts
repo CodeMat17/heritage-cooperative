@@ -205,3 +205,35 @@ export const getUserById = query({
     return user;
   },
 });
+
+// Get user by email (for webhook processing)
+export const getByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const users = await ctx.db.query("users").collect();
+    return (
+      users.find((user) => user.email.toLowerCase() === email.toLowerCase()) ||
+      null
+    );
+  },
+});
+
+// Update total contribution (for webhook processing)
+export const updateTotalContribution = mutation({
+  args: {
+    clerkUserId: v.string(),
+    totalContributed: v.number(),
+  },
+  handler: async (ctx, { clerkUserId, totalContributed }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    await ctx.db.patch(user._id, { totalContributed });
+  },
+});

@@ -211,6 +211,7 @@ const AdminPage = () => {
       setSelectedApplication(null);
     } catch (error) {
       toast.error("Failed to update loan status");
+      console.log(error)
     }
   };
 

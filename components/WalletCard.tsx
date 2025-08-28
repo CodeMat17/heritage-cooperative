@@ -1,13 +1,36 @@
 "use client";
 
 import SquadPayButton from "@/app/dashboard/SquadPayButton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function WalletCard() {
   const [amount, setAmount] = useState("");
   const [email, setEmail] = useState("");
+  const [paymentMonth, setPaymentMonth] = useState<string>("");
   const [resolvedKey, setResolvedKey] = useState<string>("");
+
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
 
   useEffect(() => {
     const fetchPublicKey = async () => {
@@ -55,10 +78,24 @@ export default function WalletCard() {
           className='h-10 w-full rounded-md border px-3 bg-background'
         />
 
+        <Select value={paymentMonth} onValueChange={setPaymentMonth}>
+          <SelectTrigger className='h-10 w-full bg-background'>
+            <SelectValue placeholder='Select payment month' />
+          </SelectTrigger>
+          <SelectContent>
+            {months.map((month) => (
+              <SelectItem key={month} value={month}>
+                {month}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <SquadPayButton
           email={email}
           amount={Math.max(0, Number(amount) || 0)}
           publicKey={resolvedKey ?? ""}
+          paymentMonth={paymentMonth}
           onSuccess={handleSuccess}
         />
       </div>
