@@ -360,11 +360,7 @@ export default function HomePage() {
                   className={`h-9 inline-flex items-center justify-center rounded-md px-3 hover:opacity-90 text-xs sm:text-sm ${getTierButtonClasses(t.id)}`}>
                   Select {t.name}
                 </Link>
-                <Link
-                  href={`/tiers/${t.id}`}
-                  className='h-9 inline-flex items-center justify-center rounded-md border px-3 hover:bg-muted text-xs sm:text-sm'>
-                  Learn more
-                </Link>
+              
               </div>
             </motion.div>
           ))}
