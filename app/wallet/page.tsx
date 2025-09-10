@@ -26,7 +26,8 @@ export default function WalletPage() {
           Select a category first to start saving.
         </div>
       )}
-      <WalletCard />
+      <p> Add Wallet (see VSCode)</p>
+      {/* <WalletCard /> */}
       <Link href='/wallet/history' className='text-sm underline w-fit'>
         Contribution History
       </Link>

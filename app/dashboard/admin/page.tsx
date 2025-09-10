@@ -33,16 +33,15 @@ import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import {
   CheckCircle,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   FileText,
   Search,
   Users,
   XCircle,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 // Type definitions
@@ -114,32 +113,20 @@ interface LoanApplication {
   reviewNotes?: string;
 }
 
-interface UsersData {
-  users: User[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
 const AdminPage = () => {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("users");
-  const [userSearch, setUserSearch] = useState("");
-  const [userPage, setUserPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedApplication, setSelectedApplication] =
     useState<LoanApplication | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [applicationStatus, setApplicationStatus] = useState("all");
+  const [userSearch, setUserSearch] = useState("");
+  const [applicationSearch, setApplicationSearch] = useState("");
 
   // Queries
-  const usersData = useQuery(api.users.getAllUsers, {
-    search: userSearch,
-    page: userPage,
-    limit: 20,
-  }) as UsersData | undefined;
+  const usersData = useQuery(api.users.getAllUsers) as User[] | undefined;
 
   const loanApplications = useQuery(
     api.loanApplications.getAllLoanApplications,
@@ -154,39 +141,34 @@ const AdminPage = () => {
   );
 
   // Check admin role and redirect if not admin
-  useEffect(() => {
-    if (isLoaded && user) {
-      const userRole = user.publicMetadata?.role as string;
-      if (userRole !== "admin") {
-        toast.error("Access denied. Admin privileges required.");
-        router.push("/dashboard");
-      }
-    }
-  }, [isLoaded, user, router]);
+  // useEffect(() => {
+  //   if (isLoaded && user) {
+  //     const userRole = user.publicMetadata?.role as string;
+  //     if (userRole !== "admin") {
+  //       toast.error("Access denied. Admin privileges required.");
+  //       router.push("/dashboard");
+  //     }
+  //   }
+  // }, [isLoaded, user, router]);
 
   // Show loading state while checking authentication
-  if (!isLoaded) {
-    return (
-      <div className='container mx-auto p-6'>
-        <div className='flex items-center justify-center min-h-[400px]'>
-          <div className='text-center'>
-            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4'></div>
-            <p className='text-muted-foreground'>Loading...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (!isLoaded) {
+  //   return (
+  //     <div className='container mx-auto p-6'>
+  //       <div className='flex items-center justify-center min-h-[400px]'>
+  //         <div className='text-center'>
+  //           <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4'></div>
+  //           <p className='text-muted-foreground'>Loading...</p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Don't render admin content if user is not admin
   if (!user || user.publicMetadata?.role !== "admin") {
     return null;
   }
-
-  const handleUserSearch = (value: string) => {
-    setUserSearch(value);
-    setUserPage(1);
-  };
 
   const handleViewUser = (user: User) => {
     setSelectedUser(user);
@@ -211,9 +193,33 @@ const AdminPage = () => {
       setSelectedApplication(null);
     } catch (error) {
       toast.error("Failed to update loan status");
-      console.log(error)
+      console.log(error);
     }
   };
+
+  // Filter users based on search
+  const filteredUsers = usersData?.filter((user) => {
+    if (!userSearch) return true;
+    const searchTerm = userSearch.toLowerCase();
+    return (
+      user.fullName.toLowerCase().includes(searchTerm) ||
+      user.email.toLowerCase().includes(searchTerm) ||
+      user.mobilePhoneNumber.includes(searchTerm) ||
+      (user.tier && user.tier.toLowerCase().includes(searchTerm))
+    );
+  });
+
+  // Filter loan applications based on search
+  const filteredApplications = loanApplications?.filter((application) => {
+    if (!applicationSearch) return true;
+    const searchTerm = applicationSearch.toLowerCase();
+    return (
+      application.fullName.toLowerCase().includes(searchTerm) ||
+      application.email.toLowerCase().includes(searchTerm) ||
+      application.loanPurpose.toLowerCase().includes(searchTerm) ||
+      application.status.toLowerCase().includes(searchTerm)
+    );
+  });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-NG", {
@@ -246,13 +252,13 @@ const AdminPage = () => {
   };
 
   return (
-    <div className='container mx-auto p-6 space-y-6'>
-      <div className='flex items-center justify-between'>
-        <h1 className='text-3xl font-bold'>Admin Dashboard</h1>
+    <div className='w-full min-h-screen max-w-7xl mx-auto px-3 sm:px-6 py-20 space-y-4 sm:space-y-6'>
+      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0'>
+        <h1 className='text-2xl sm:text-3xl font-bold'>Admin Dashboard</h1>
         <div className='flex items-center space-x-2'>
-          <Users className='h-5 w-5' />
-          <span className='text-sm text-muted-foreground'>
-            {usersData?.total || 0} Total Users
+          <Users className='h-4 w-4 sm:h-5 sm:w-5' />
+          <span className='text-xs sm:text-sm text-muted-foreground'>
+            {filteredUsers?.length || 0} of {usersData?.length || 0} Users
           </span>
         </div>
       </div>
@@ -260,16 +266,18 @@ const AdminPage = () => {
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
-        className='space-y-4'>
+        className='space-y-3 sm:space-y-4'>
         <TabsList className='grid w-full grid-cols-2'>
-          <TabsTrigger value='users' className='flex items-center space-x-2'>
-            <Users className='h-4 w-4' />
+          <TabsTrigger
+            value='users'
+            className='flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm'>
+            <Users className='h-3 w-3 sm:h-4 sm:w-4' />
             <span>Users</span>
           </TabsTrigger>
           <TabsTrigger
             value='applications'
-            className='flex items-center space-x-2'>
-            <FileText className='h-4 w-4' />
+            className='flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm'>
+            <FileText className='h-3 w-3 sm:h-4 sm:w-4' />
             <span>Loan Applications</span>
           </TabsTrigger>
         </TabsList>
@@ -280,216 +288,70 @@ const AdminPage = () => {
               <CardTitle>User Management</CardTitle>
               <CardDescription>
                 Manage all registered users and view their details
+                {userSearch && (
+                  <span className='block mt-1 text-xs'>
+                    Showing {filteredUsers?.length || 0} of{" "}
+                    {usersData?.length || 0} results for &quot;{userSearch}
+                    &quot;
+                  </span>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className='space-y-4'>
+              {/* User Search Filter */}
               <div className='flex items-center space-x-2'>
                 <div className='relative flex-1'>
                   <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
                   <Input
-                    placeholder='Search users by name, email, or phone...'
+                    placeholder='Search users by name, email, phone, or tier...'
                     value={userSearch}
-                    onChange={(e) => handleUserSearch(e.target.value)}
+                    onChange={(e) => setUserSearch(e.target.value)}
                     className='pl-10'
                   />
+                  {userSearch && (
+                    <button
+                      onClick={() => setUserSearch("")}
+                      className='absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground'>
+                      <XCircle className='h-4 w-4' />
+                    </button>
+                  )}
                 </div>
               </div>
 
               <div className='space-y-2'>
-                {usersData?.users.map((user) => (
+                {filteredUsers?.map((user) => (
                   <div
                     key={user._id}
-                    className='flex items-center justify-between p-4 border rounded-lg'>
+                    className='flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border rounded-lg gap-3 sm:gap-0'>
                     <div className='flex-1'>
-                      <h3 className='font-semibold'>{user.fullName}</h3>
-                      <p className='text-sm text-muted-foreground'>
+                      <h3 className='font-semibold text-sm sm:text-base'>
+                        {user.fullName}
+                      </h3>
+                      <p className='text-xs sm:text-sm text-muted-foreground'>
                         {user.email}
                       </p>
-                      <p className='text-sm text-muted-foreground'>
+                      <p className='text-xs sm:text-sm text-muted-foreground'>
                         {user.mobilePhoneNumber}
                       </p>
-                      <div className='flex items-center space-x-2 mt-1'>
-                        <Badge variant='outline'>
+                      <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:space-x-2 mt-2 sm:mt-1'>
+                        <Badge variant='outline' className='text-xs'>
                           {user.tier || "No Tier"}
                         </Badge>
-                        <span className='text-sm text-muted-foreground'>
+                        <span className='text-xs sm:text-sm text-muted-foreground'>
                           Contributed:{" "}
                           {formatCurrency(user.totalContributed || 0)}
                         </span>
                       </div>
                     </div>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant='outline'
-                          size='sm'
-                          onClick={() => handleViewUser(user)}>
-                          <Eye className='h-4 w-4 mr-2' />
-                          View Details
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className='max-w-2xl max-h-[80vh] overflow-y-auto'>
-                        <DialogHeader>
-                          <DialogTitle>User Details</DialogTitle>
-                          <DialogDescription>
-                            Complete user information
-                          </DialogDescription>
-                        </DialogHeader>
-                        {selectedUser && (
-                          <div className='space-y-4'>
-                            <div className='grid grid-cols-2 gap-4'>
-                              <div>
-                                <h4 className='font-semibold'>
-                                  Personal Information
-                                </h4>
-                                <p>
-                                  <strong>Full Name:</strong>{" "}
-                                  {selectedUser.fullName}
-                                </p>
-                                <p>
-                                  <strong>Email:</strong> {selectedUser.email}
-                                </p>
-                                <p>
-                                  <strong>Phone:</strong>{" "}
-                                  {selectedUser.mobilePhoneNumber}
-                                </p>
-                                <p>
-                                  <strong>Gender:</strong> {selectedUser.gender}
-                                </p>
-                                <p>
-                                  <strong>Date of Birth:</strong>{" "}
-                                  {selectedUser.dateOfBirth}
-                                </p>
-                                <p>
-                                  <strong>Nationality:</strong>{" "}
-                                  {selectedUser.nationality}
-                                </p>
-                                <p>
-                                  <strong>State of Origin:</strong>{" "}
-                                  {selectedUser.stateOfOrigin}
-                                </p>
-                                <p>
-                                  <strong>LGA:</strong> {selectedUser.lga}
-                                </p>
-                                <p>
-                                  <strong>Home Town:</strong>{" "}
-                                  {selectedUser.homeTown}
-                                </p>
-                                <p>
-                                  <strong>Marital Status:</strong>{" "}
-                                  {selectedUser.maritalStatus}
-                                </p>
-                              </div>
-                              <div>
-                                <h4 className='font-semibold'>
-                                  Address Information
-                                </h4>
-                                <p>
-                                  <strong>Residential Address:</strong>{" "}
-                                  {selectedUser.residentialAddress}
-                                </p>
-                                <p>
-                                  <strong>Permanent Address:</strong>{" "}
-                                  {selectedUser.permanentAddress}
-                                </p>
-                                <h4 className='font-semibold mt-4'>
-                                  Employment Information
-                                </h4>
-                                <p>
-                                  <strong>Type of Trade:</strong>{" "}
-                                  {selectedUser.typeOfTrade}
-                                </p>
-                                <p>
-                                  <strong>Years in Trade:</strong>{" "}
-                                  {selectedUser.yearsInTrade}
-                                </p>
-                                <p>
-                                  <strong>Educational Background:</strong>{" "}
-                                  {selectedUser.educationalBackground}
-                                </p>
-                                <h4 className='font-semibold mt-4'>
-                                  Account Information
-                                </h4>
-                                <p>
-                                  <strong>Account Name:</strong>{" "}
-                                  {selectedUser.accountName}
-                                </p>
-                                <p>
-                                  <strong>Account Number:</strong>{" "}
-                                  {selectedUser.accountNumber}
-                                </p>
-                                <p>
-                                  <strong>Bank Name:</strong>{" "}
-                                  {selectedUser.bankName}
-                                </p>
-                                <p>
-                                  <strong>BVN:</strong> {selectedUser.bvn}
-                                </p>
-                              </div>
-                            </div>
-                            <div>
-                              <h4 className='font-semibold'>Next of Kin</h4>
-                              <p>
-                                <strong>Name:</strong> {selectedUser.nokTitle}{" "}
-                                {selectedUser.nokSurname}{" "}
-                                {selectedUser.nokFirstName}{" "}
-                                {selectedUser.nokOtherName}
-                              </p>
-                              <p>
-                                <strong>Phone:</strong>{" "}
-                                {selectedUser.nokPhoneNumber}
-                              </p>
-                              <p>
-                                <strong>Email:</strong> {selectedUser.nokEmail}
-                              </p>
-                              <p>
-                                <strong>Address:</strong>{" "}
-                                {selectedUser.nokHouseAddress}
-                              </p>
-                              <p>
-                                <strong>Relationship:</strong>{" "}
-                                {selectedUser.nokRelationship}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                    <Button asChild variant={"outline"} size={"sm"}>
+                      <Link href={`/dashboard/admin/user/${user._id}`}>
+                        <Eye className='w-4 h-4' />
+                        View Details
+                      </Link>
+                    </Button>
                   </div>
                 ))}
               </div>
-
-              {/* Pagination */}
-              {usersData && usersData.totalPages > 1 && (
-                <div className='flex items-center justify-between'>
-                  <p className='text-sm text-muted-foreground'>
-                    Showing {(userPage - 1) * 20 + 1} to{" "}
-                    {Math.min(userPage * 20, usersData.total)} of{" "}
-                    {usersData.total} users
-                  </p>
-                  <div className='flex items-center space-x-2'>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => setUserPage(userPage - 1)}
-                      disabled={userPage === 1}>
-                      <ChevronLeft className='h-4 w-4' />
-                      Previous
-                    </Button>
-                    <span className='text-sm'>
-                      Page {userPage} of {usersData.totalPages}
-                    </span>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => setUserPage(userPage + 1)}
-                      disabled={userPage === usersData.totalPages}>
-                      Next
-                      <ChevronRight className='h-4 w-4' />
-                    </Button>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -500,14 +362,38 @@ const AdminPage = () => {
               <CardTitle>Loan Applications</CardTitle>
               <CardDescription>
                 Review and manage loan applications
+                {applicationSearch && (
+                  <span className='block mt-1 text-xs'>
+                    Showing {filteredApplications?.length || 0} of{" "}
+                    {loanApplications?.length || 0} results for &quot;
+                    {applicationSearch}&quot;
+                  </span>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className='space-y-4'>
-              <div className='flex items-center space-x-2'>
+              {/* Loan Applications Search and Filter */}
+              <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2'>
+                <div className='relative flex-1'>
+                  <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
+                  <Input
+                    placeholder='Search applications by name, email, purpose, or status...'
+                    value={applicationSearch}
+                    onChange={(e) => setApplicationSearch(e.target.value)}
+                    className='pl-10'
+                  />
+                  {applicationSearch && (
+                    <button
+                      onClick={() => setApplicationSearch("")}
+                      className='absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground'>
+                      <XCircle className='h-4 w-4' />
+                    </button>
+                  )}
+                </div>
                 <Select
                   value={applicationStatus}
                   onValueChange={setApplicationStatus}>
-                  <SelectTrigger className='w-[200px]'>
+                  <SelectTrigger className='w-full sm:w-[200px]'>
                     <SelectValue placeholder='Filter by status' />
                   </SelectTrigger>
                   <SelectContent>
@@ -520,28 +406,30 @@ const AdminPage = () => {
               </div>
 
               <div className='space-y-2'>
-                {loanApplications?.map((application) => (
+                {filteredApplications?.map((application) => (
                   <div
                     key={application._id}
-                    className='flex items-center justify-between p-4 border rounded-lg'>
+                    className='flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border rounded-lg gap-3 sm:gap-0'>
                     <div className='flex-1'>
-                      <h3 className='font-semibold'>{application.fullName}</h3>
-                      <p className='text-sm text-muted-foreground'>
+                      <h3 className='font-semibold text-sm sm:text-base'>
+                        {application.fullName}
+                      </h3>
+                      <p className='text-xs sm:text-sm text-muted-foreground'>
                         {application.email}
                       </p>
-                      <div className='flex items-center space-x-4 mt-2'>
-                        <span className='text-sm'>
+                      <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:space-x-4 mt-2'>
+                        <span className='text-xs sm:text-sm'>
                           <strong>Amount:</strong>{" "}
                           {formatCurrency(application.loanAmount)}
                         </span>
-                        <span className='text-sm'>
+                        <span className='text-xs sm:text-sm'>
                           <strong>Purpose:</strong> {application.loanPurpose}
                         </span>
-                        <span className='text-sm'>
+                        <span className='text-xs sm:text-sm'>
                           <strong>Period:</strong> {application.repaymentPeriod}{" "}
                           months
                         </span>
-                        <span className='text-sm'>
+                        <span className='text-xs sm:text-sm'>
                           <strong>Submitted:</strong>{" "}
                           {formatDate(application.submittedAt)}
                         </span>
@@ -556,21 +444,24 @@ const AdminPage = () => {
                           <Button
                             variant='outline'
                             size='sm'
+                            className='w-full sm:w-auto text-xs'
                             onClick={() => handleViewApplication(application)}>
-                            <Eye className='h-4 w-4 mr-2' />
+                            <Eye className='h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2' />
                             View Details
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className='max-w-2xl max-h-[80vh] overflow-y-auto'>
+                        <DialogContent className='max-w-[95vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto mx-auto fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2'>
                           <DialogHeader>
-                            <DialogTitle>Loan Application Details</DialogTitle>
-                            <DialogDescription>
+                            <DialogTitle className='text-lg sm:text-xl'>
+                              Loan Application Details
+                            </DialogTitle>
+                            <DialogDescription className='text-sm'>
                               Review application and take action
                             </DialogDescription>
                           </DialogHeader>
                           {selectedApplication && (
                             <div className='space-y-4'>
-                              <div className='grid grid-cols-2 gap-4'>
+                              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
                                 <div>
                                   <h4 className='font-semibold'>
                                     Applicant Information
@@ -661,7 +552,7 @@ const AdminPage = () => {
                                       className='mt-1'
                                     />
                                   </div>
-                                  <div className='flex items-center space-x-2'>
+                                  <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2'>
                                     <Button
                                       onClick={() =>
                                         handleUpdateLoanStatus(
@@ -669,8 +560,8 @@ const AdminPage = () => {
                                           "approved"
                                         )
                                       }
-                                      className='bg-green-600 hover:bg-green-700'>
-                                      <CheckCircle className='h-4 w-4 mr-2' />
+                                      className='bg-green-600 hover:bg-green-700 text-sm'>
+                                      <CheckCircle className='h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2' />
                                       Approve
                                     </Button>
                                     <Button
@@ -680,8 +571,9 @@ const AdminPage = () => {
                                           "rejected"
                                         )
                                       }
-                                      variant='destructive'>
-                                      <XCircle className='h-4 w-4 mr-2' />
+                                      variant='destructive'
+                                      className='text-sm'>
+                                      <XCircle className='h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2' />
                                       Reject
                                     </Button>
                                   </div>
@@ -723,9 +615,9 @@ const AdminPage = () => {
               </div>
 
               {(!loanApplications || loanApplications.length === 0) && (
-                <div className='text-center py-8'>
-                  <FileText className='h-12 w-12 mx-auto text-muted-foreground mb-4' />
-                  <p className='text-muted-foreground'>
+                <div className='text-center py-6 sm:py-8'>
+                  <FileText className='h-8 w-8 sm:h-12 sm:w-12 mx-auto text-muted-foreground mb-3 sm:mb-4' />
+                  <p className='text-sm sm:text-base text-muted-foreground'>
                     No loan applications found
                   </p>
                 </div>

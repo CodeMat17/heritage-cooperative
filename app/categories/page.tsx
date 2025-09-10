@@ -44,19 +44,19 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className='grid gap-6'>
-      <div className='grid gap-2'>
-        <h1 className='text-2xl font-semibold tracking-tight'>
+    <div className='grid gap-4 sm:gap-6 px-3 sm:px-0'>
+      <div className='grid gap-2 py-20'>
+        <h1 className='text-xl sm:text-2xl font-semibold tracking-tight'>
           Choose your membership category
         </h1>
-        <p className='text-muted-foreground'>
+        <p className='text-sm sm:text-base text-muted-foreground'>
           Each tier offers a unique contribution rate and loan entitlement after
           a minimum 90-day period.{" "}
           {user?.status !== "verified" &&
             "(Read-only preview until verification)"}
         </p>
       </div>
-      <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+      <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4'>
         {MEMBERSHIP_CATEGORIES.map((c) => (
           <CategoryCard key={c.id} category={c} onSelect={handleSelect} />
         ))}

@@ -86,9 +86,6 @@ export default defineSchema({
     // Processing status
     isProcessed: v.boolean(), // To prevent double processing
     processingNotes: v.optional(v.string()),
-
-    // Payment month
-    paymentMonth: v.optional(v.string()), // "January", "February", etc.
   })
     .index("by_clerkUserId", ["clerkUserId"])
     .index("by_transactionRef", ["transactionRef"])

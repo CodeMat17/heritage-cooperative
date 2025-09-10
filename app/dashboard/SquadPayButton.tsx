@@ -10,7 +10,7 @@ interface SquadPayProps {
   email: string;
   amount: number; // Amount in Naira (will be multiplied by 100 internally)
   publicKey: string;
-  paymentMonth?: string; // Month the payment is for
+  lastPaymentDate?: number | null;
   onSuccess?: () => void;
   onClose?: () => void;
   onLoad?: () => void;
@@ -25,7 +25,6 @@ interface SquadOptions {
   email: string;
   amount: number;
   currency_code: string;
-  callback_url: string;
   meta?: Record<string, string>;
 }
 
@@ -52,7 +51,7 @@ export default function SquadPayButton({
   email,
   amount,
   publicKey,
-  paymentMonth,
+  lastPaymentDate,
   onSuccess,
   onClose,
   onLoad,
@@ -61,10 +60,36 @@ export default function SquadPayButton({
   const squadInstanceRef = useRef<SquadInstance | null>(null);
   const router = useRouter();
 
-  // Dynamic callback URL based on environment
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const callbackUrl = `${baseUrl}/dashboard`;
-  const webhookUrl = `${baseUrl}/api/webhooks/squad`;
+  // Check if user has made payment for today
+  const hasPaidToday = () => {
+    if (!lastPaymentDate) return false;
+
+    const today = new Date();
+    const lastPayment = new Date(lastPaymentDate);
+
+    return (
+      today.getFullYear() === lastPayment.getFullYear() &&
+      today.getMonth() === lastPayment.getMonth() &&
+      today.getDate() === lastPayment.getDate()
+    );
+  };
+
+  const paidToday = hasPaidToday();
+  const currentDate = new Date().toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const lastPaymentFormatted = lastPaymentDate
+    ? new Date(lastPaymentDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
+
+  // Dynamic webhook URL based on environment
+  // const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   // Dynamically load Squad script
   useEffect(() => {
@@ -104,15 +129,16 @@ export default function SquadPayButton({
       },
       onSuccess: () => {
         console.log("Payment linked successfully");
-        router.push(callbackUrl);
         onSuccess?.();
+        // Refresh the dashboard to show updated data
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000); // Small delay to ensure webhook processes
       },
       key: publicKey,
       email,
       amount: amount * 100, // Convert to kobo (NGN)
       currency_code: "NGN",
-      callback_url: callbackUrl,
-      meta: paymentMonth ? { paymentMonth } : undefined,
     };
 
     squadInstanceRef.current = new window.squad(options);
@@ -126,7 +152,6 @@ export default function SquadPayButton({
     onLoad,
     publicKey,
     router,
-    callbackUrl,
   ]);
 
   const handlePayment = () => {
@@ -173,15 +198,12 @@ export default function SquadPayButton({
         },
         onSuccess: () => {
           console.log("Payment linked successfully");
-
           onSuccess?.();
         },
         key: publicKey,
         email,
         amount: amount * 100,
         currency_code: "NGN",
-        callback_url: callbackUrl,
-        meta: paymentMonth ? { paymentMonth } : undefined,
       };
       squadInstanceRef.current = new window.squad(options);
       squadInstanceRef.current.setup();
@@ -195,8 +217,14 @@ export default function SquadPayButton({
   };
 
   return (
-    <Button onClick={handlePayment} disabled={!scriptLoaded || !publicKey}>
-      Add Funds
+  
+    <Button
+      onClick={handlePayment}
+      disabled={!scriptLoaded || !publicKey || paidToday}
+      className={paidToday ? "bg-blue-200 text-blue-600" : ""}>
+      {paidToday
+        ? `You have paid for today  (${lastPaymentFormatted})`
+        : `Pay Daily Contribution - ${currentDate}`}
     </Button>
   );
 }

@@ -37,7 +37,7 @@ export default function CategoryDetailPage() {
   }
 
   return (
-    <div className='grid gap-4'>
+    <div className='grid gap-4 py-20'>
       <h1 className='text-2xl font-semibold tracking-tight'>{category.name}</h1>
       <div className='rounded-xl border p-4 bg-card grid gap-2'>
         <div>

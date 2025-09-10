@@ -26,7 +26,6 @@ export const create = mutation({
     processedAt: v.number(),
     isProcessed: v.boolean(),
     processingNotes: v.optional(v.string()),
-    paymentMonth: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("userContributions", args);

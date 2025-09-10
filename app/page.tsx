@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import {
   Award,
@@ -138,42 +139,54 @@ export default function HomePage() {
     TIERS.find((tier) => tier.daily === dailyAmount) || TIERS[0];
   const totalAfter90 = dailyAmount * 90;
 
+  // Auth state
+  const { isSignedIn, sessionClaims } = useAuth();
+  const isOnboardingComplete = sessionClaims?.metadata?.onboardingComplete;
+
   return (
-    <div className='grid gap-16 px-4 py-12 max-w-7xl mx-auto'>
+    <div className='grid gap-12 sm:gap-16 px-3 sm:px-4 py-8 max-w-7xl mx-auto'>
       {/* Hero Section */}
-      <section className='grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center'>
-        <div className='space-y-5'>
+      <section className='grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center'>
+        <div className='space-y-4 sm:space-y-5'>
           <motion.h1
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className='text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight'>
+            className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight'>
             Save Smart, Grow Strong
           </motion.h1>
-          <p className='text-muted-foreground max-w-2xl text-lg leading-6 font-medium'>
+          <p className='text-muted-foreground max-w-2xl text-base sm:text-lg leading-6 font-medium'>
             Welcome to Heritage Multipurpose Cooperative platform - where you
             grow savings daily, track your progress effortlessly and unlock
             tailored loans after 90 days.
           </p>
           <div className='flex flex-wrap gap-2'>
-            <span className='inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 shadow-md'>
+            <span className='inline-flex items-center gap-2 rounded-full border px-2 sm:px-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 shadow-md'>
               <Banknote className='h-3.5 w-3.5' /> Savings
             </span>
-            <span className='inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 shadow-md'>
+            <span className='inline-flex items-center gap-2 rounded-full border px-2 sm:px-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 shadow-md'>
               <LineChart className='h-3.5 w-3.5' /> Investments
             </span>
-            <span className='inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 shadow-md'>
+            <span className='inline-flex items-center gap-2 rounded-full border px-2 sm:px-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 shadow-md'>
               <BadgePercent className='h-3.5 w-3.5' /> Loans
             </span>
           </div>
           <div className='flex gap-3 pt-2'>
-            <Button asChild>
-              <Link href='/sign-up'>Create account</Link>
-            </Button>
-
-            <Button asChild variant={"outline"}>
-              <Link href='/dashboard'>Go to dashboard</Link>
-            </Button>
+            {isSignedIn && isOnboardingComplete ? (
+              <Button asChild>
+                <Link href='/dashboard'>Go to dashboard</Link>
+              </Button>
+            ) : (
+              <div className='flex gap-3 items-center' >
+                
+                <Button asChild size='lg'>
+                  <Link href='/sign-in'>Sign in</Link>
+                </Button>
+                <Button asChild size='lg'>
+                  <Link href='/sign-up'>Sign up</Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
         <div className='grid grid-cols-2 gap-4'>
@@ -297,33 +310,37 @@ export default function HomePage() {
       </section>
 
       {/* Tiers Section */}
-      <section className='grid gap-6'>
+      <section className='grid gap-4 sm:gap-6'>
         <div>
-          <h2 className='text-2xl md:text-3xl font-bold tracking-tight'>
+          <h2 className='text-xl sm:text-2xl md:text-3xl font-bold tracking-tight'>
             Membership Tiers
           </h2>
-          <p className='text-muted-foreground max-w-lg'>
+          <p className='text-sm sm:text-base text-muted-foreground max-w-lg'>
             Choose a tier to start daily savings. After 90 days of consistency,
             unlock your loan entitlement.
           </p>
         </div>
-        <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+        <div className='grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3'>
           {TIERS.map((t) => (
             <motion.div
               key={t.id}
               whileHover={{ y: -2 }}
-              className='rounded-xl border bg-card p-5 shadow-md'>
+              className='rounded-xl border bg-card p-3 sm:p-5 shadow-md'>
               <div className='flex items-baseline justify-between'>
                 <div className='flex items-center gap-2'>
                   {renderTierIcon(t.id)}
-                  <h3 className='text-lg font-semibold capitalize'>{t.name}</h3>
+                  <h3 className='text-base sm:text-lg font-semibold capitalize'>
+                    {t.name}
+                  </h3>
                 </div>
                 <span className='text-xs rounded-full border px-2 py-0.5'>
                   90 days
                 </span>
               </div>
-              <p className='mt-1 text-sm text-muted-foreground'>{t.blurb}</p>
-              <div className='mt-4 grid gap-1 text-sm'>
+              <p className='mt-1 text-xs sm:text-sm text-muted-foreground'>
+                {t.blurb}
+              </p>
+              <div className='mt-3 sm:mt-4 grid gap-1 text-xs sm:text-sm'>
                 <div>
                   Daily Contribution:{" "}
                   <span className='font-medium'>{naira(t.daily)}</span>
@@ -337,15 +354,15 @@ export default function HomePage() {
                   <span className='font-medium'>{naira(t.loan)}</span>
                 </div>
               </div>
-              <div className='mt-4 flex gap-2'>
+              <div className='mt-3 sm:mt-4 flex flex-col sm:flex-row gap-2'>
                 <Link
                   href={`/sign-up`}
-                  className={`h-9 inline-flex items-center rounded-md px-3 hover:opacity-90 ${getTierButtonClasses(t.id)}`}>
+                  className={`h-9 inline-flex items-center justify-center rounded-md px-3 hover:opacity-90 text-xs sm:text-sm ${getTierButtonClasses(t.id)}`}>
                   Select {t.name}
                 </Link>
                 <Link
                   href={`/tiers/${t.id}`}
-                  className='h-9 inline-flex items-center rounded-md border px-3 hover:bg-muted'>
+                  className='h-9 inline-flex items-center justify-center rounded-md border px-3 hover:bg-muted text-xs sm:text-sm'>
                   Learn more
                 </Link>
               </div>
@@ -355,46 +372,48 @@ export default function HomePage() {
       </section>
 
       {/* How it works */}
-      <section className='grid gap-6'>
+      <section className='grid gap-4 sm:gap-6'>
         <div>
-          <h2 className='text-2xl md:text-3xl font-bold tracking-tight'>
+          <h2 className='text-xl sm:text-2xl md:text-3xl font-bold tracking-tight'>
             How it works
           </h2>
-          <p className='text-muted-foreground'>
+          <p className='text-sm sm:text-base text-muted-foreground'>
             Join → Save daily → Unlock loan in 90 days.
           </p>
         </div>
-        <div className='grid gap-4 sm:grid-cols-3'>
-          <div className='rounded-xl border bg-card p-5'>
+        <div className='grid gap-3 sm:gap-4 sm:grid-cols-3'>
+          <div className='rounded-xl border bg-card p-3 sm:p-5'>
             <div className='flex items-center gap-3'>
-              <span className='h-10 w-10 grid place-items-center rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/20'>
-                <Medal className='h-5 w-5 text-emerald-500' />
+              <span className='h-8 w-8 sm:h-10 sm:w-10 grid place-items-center rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/20'>
+                <Medal className='h-4 w-4 sm:h-5 sm:w-5 text-emerald-500' />
               </span>
-              <h3 className='font-semibold'>Join</h3>
+              <h3 className='text-sm sm:text-base font-semibold'>Join</h3>
             </div>
-            <p className='mt-2 text-sm text-muted-foreground'>
+            <p className='mt-2 text-xs sm:text-sm text-muted-foreground'>
               Create your free account in minutes.
             </p>
           </div>
-          <div className='rounded-xl border bg-card p-5'>
+          <div className='rounded-xl border bg-card p-3 sm:p-5'>
             <div className='flex items-center gap-3'>
-              <span className='h-10 w-10 grid place-items-center rounded-lg bg-blue-500/10 ring-1 ring-blue-500/20'>
-                <Banknote className='h-5 w-5 text-blue-500' />
+              <span className='h-8 w-8 sm:h-10 sm:w-10 grid place-items-center rounded-lg bg-blue-500/10 ring-1 ring-blue-500/20'>
+                <Banknote className='h-4 w-4 sm:h-5 sm:w-5 text-blue-500' />
               </span>
-              <h3 className='font-semibold'>Save daily</h3>
+              <h3 className='text-sm sm:text-base font-semibold'>Save daily</h3>
             </div>
-            <p className='mt-2 text-sm text-muted-foreground'>
+            <p className='mt-2 text-xs sm:text-sm text-muted-foreground'>
               Automate or contribute manually every day.
             </p>
           </div>
           <div className='rounded-xl border bg-card p-5'>
             <div className='flex items-center gap-3'>
-              <span className='h-10 w-10 grid place-items-center rounded-lg bg-amber-500/10 ring-1 ring-amber-500/20'>
-                <BadgePercent className='h-5 w-5 text-amber-500' />
+              <span className='h-8 w-8 sm:h-10 sm:w-10 grid place-items-center rounded-lg bg-amber-500/10 ring-1 ring-amber-500/20'>
+                <BadgePercent className='h-4 w-4 sm:h-5 sm:w-5 text-amber-500' />
               </span>
-              <h3 className='font-semibold'>Unlock loan</h3>
+              <h3 className='text-sm sm:text-base font-semibold'>
+                Unlock loan
+              </h3>
             </div>
-            <p className='mt-2 text-sm text-muted-foreground'>
+            <p className='mt-2 text-xs sm:text-sm text-muted-foreground'>
               After 90 days of consistency, access your entitlement.
             </p>
           </div>

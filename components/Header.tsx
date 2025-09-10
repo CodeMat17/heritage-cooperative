@@ -11,14 +11,14 @@ const Header = () => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className='px-4 py-3 sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
-      <div className='w-full flex items-center justify-between'>
-        <div>Heritage Coop</div>
-        <div className='flex items-center gap-2'>
+    <div className='sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b shadow-sm'>
+      <div className='w-full flex items-center justify-between max-w-7xl mx-auto px-4 py-3'>
+        <div className='text-sm sm:text-base font-medium'>Heritage Coop</div>
+        <div className='flex items-center gap-1 sm:gap-2'>
           <button
             aria-label='Toggle theme'
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className='inline-flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted'>
+            className='inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-md border hover:bg-muted'>
             {theme === "dark" ? (
               <Sun className='h-4 w-4' />
             ) : (
@@ -27,18 +27,18 @@ const Header = () => {
           </button>
           <Authenticated>
             <UserButton />
-            <Button asChild>
+            {/* <Button asChild size='sm' className='hidden sm:inline-flex'>
               <Link href='/dashboard'>Dashboard</Link>
-            </Button>
+            </Button> */}
           </Authenticated>
-          <Unauthenticated>
-            <Button asChild>
+          {/* <Unauthenticated>
+            <Button asChild size='sm' className='hidden sm:inline-flex'>
               <Link href='/sign-in'>Sign in</Link>
             </Button>
-            <Button asChild>
+            <Button asChild size='sm' className='hidden sm:inline-flex'>
               <Link href='/sign-up'>Sign up</Link>
             </Button>
-          </Unauthenticated>
+          </Unauthenticated> */}
         </div>
       </div>
     </div>

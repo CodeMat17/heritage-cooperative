@@ -133,55 +133,14 @@ export const getByClerkId = query({
 });
 
 export const getAllUsers = query({
-  args: {
-    search: v.optional(v.string()),
-    page: v.optional(v.number()),
-    limit: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
-
-    // Check admin role
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
-      .unique();
-
-    if (!user || user.role !== "admin") {
-      throw new Error("Admin privileges required");
-    }
-
-    const page = args.page || 1;
-    const limit = args.limit || 20;
-    const offset = (page - 1) * limit;
-
-    let users = await ctx.db.query("users").collect();
-
-    // Apply search filter if provided
-    if (args.search) {
-      const searchTerm = args.search.toLowerCase();
-      users = users.filter(
-        (user) =>
-          user.fullName.toLowerCase().includes(searchTerm) ||
-          user.email.toLowerCase().includes(searchTerm) ||
-          user.mobilePhoneNumber.includes(searchTerm)
-      );
-    }
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
 
     // Sort by fullName
     users.sort((a, b) => a.fullName.localeCompare(b.fullName));
 
-    // Apply pagination
-    const paginatedUsers = users.slice(offset, offset + limit);
-
-    return {
-      users: paginatedUsers,
-      total: users.length,
-      page,
-      limit,
-      totalPages: Math.ceil(users.length / limit),
-    };
+    return users;
   },
 });
 
@@ -190,16 +149,6 @@ export const getUserById = query({
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
-
-    // Check admin role
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
-      .unique();
-
-    if (!currentUser || currentUser.role !== "admin") {
-      throw new Error("Admin privileges required");
-    }
 
     const user = await ctx.db.get(id);
     return user;

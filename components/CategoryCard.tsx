@@ -15,22 +15,24 @@ export default function CategoryCard({ category, onSelect }: Props) {
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
       onClick={() => onSelect(category.id)}
-      className='text-left rounded-xl border p-4 bg-card/60 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-ring'>
+      className='text-left rounded-xl border p-3 sm:p-4 bg-card/60 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-ring'>
       <div className='flex items-center justify-between'>
         <div>
-          <h3 className='font-semibold'>{category.name}</h3>
-          <p className='text-sm text-muted-foreground'>
+          <h3 className='text-sm sm:text-base font-semibold'>
+            {category.name}
+          </h3>
+          <p className='text-xs sm:text-sm text-muted-foreground'>
             {category.durationDays} days
           </p>
         </div>
         <div className='text-right'>
-          <div className='text-sm'>Daily</div>
-          <div className='font-semibold'>
+          <div className='text-xs sm:text-sm'>Daily</div>
+          <div className='text-sm sm:text-base font-semibold'>
             {naira(category.dailyContributionNaira)}
           </div>
         </div>
       </div>
-      <div className='mt-3 text-xs text-muted-foreground'>
+      <div className='mt-2 sm:mt-3 text-xs text-muted-foreground'>
         Loan: {naira(category.loanEntitlementNaira)}
       </div>
     </motion.button>

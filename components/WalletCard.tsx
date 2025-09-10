@@ -1,36 +1,88 @@
 "use client";
 
 import SquadPayButton from "@/app/dashboard/SquadPayButton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useQuery } from "convex/react";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { api } from "../convex/_generated/api";
 
-export default function WalletCard() {
-  const [amount, setAmount] = useState("");
+export default function WalletCard({
+  id,
+  userName,
+  userTier,
+  userEmail,
+}: {
+  id: string;
+  userName: string;
+  userTier: string;
+  userEmail: string;
+}) {
+  const [clerkUserId, setClerkUserId] = useState("");
+  const [fullname, setFullname] = useState("");
+  const [tier, setTier] = useState("");
   const [email, setEmail] = useState("");
-  const [paymentMonth, setPaymentMonth] = useState<string>("");
+
   const [resolvedKey, setResolvedKey] = useState<string>("");
 
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
+  // Get daily contribution amount based on tier
+  const getDailyContribution = (tier: string): number => {
+    switch (tier.toLowerCase()) {
+      case "bronze":
+        return 500;
+      case "silver":
+        return 1000;
+      case "gold":
+        return 2000;
+      case "diamond":
+        return 5000;
+      case "emerald":
+        return 10000;
+      default:
+        return 0;
+    }
+  };
+
+  // Get user's last payment
+  const lastPayment = useQuery(api.userContributions.getByUserId, {
+    clerkUserId: clerkUserId,
+  });
+
+  // Get the most recent successful payment
+  const getLastPaymentDate = () => {
+    if (!lastPayment || lastPayment.length === 0) {
+      return null;
+    }
+
+    const successfulPayments = lastPayment.filter(
+      (payment) =>
+        payment.transactionStatus === "success" ||
+        payment.transactionStatus === "Success"
+    );
+
+    if (successfulPayments.length === 0) {
+      return null;
+    }
+
+    // Sort by processedAt and get the most recent
+    const mostRecent = successfulPayments.sort(
+      (a, b) => b.processedAt - a.processedAt
+    )[0];
+    return mostRecent.processedAt;
+  };
+
+  const lastPaymentDate = getLastPaymentDate();
+  const dailyContribution = getDailyContribution(tier);
+  const amount = Number(dailyContribution);
+
+  useEffect(() => {
+    if (id) {
+      setClerkUserId(id);
+      setFullname(userName);
+      setTier(userTier);
+      setEmail(userEmail);
+    }
+  }, [id, userName, userTier, userEmail]);
 
   useEffect(() => {
     const fetchPublicKey = async () => {
@@ -54,49 +106,26 @@ export default function WalletCard() {
 
   return (
     <div className='rounded-xl border p-4 bg-card w-full bg-gradient-to-br from-primary/10 to-primary/5'>
-      <h1
-        className='text-xl font-medium text-blue-500
-      '>
-        Wallet
-      </h1>
-      {/* <p className='text-sm text-muted-foreground'>Current Balance</p> */}
-      {/* <div className='text-2xl font-semibold'>Amount...</div> */}
-      <div className='mt-3 space-y-2'>
-        <input
-          type='email'
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder='Email address'
-          className='h-10 w-full rounded-md border px-3 bg-background'
-        />
-        <input
-          type='number'
-          min={500}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder='Amount (₦)'
-          className='h-10 w-full rounded-md border px-3 bg-background'
-        />
+      <h1 className='text-lg sm:text-xl font-medium text-blue-500'>Wallet</h1>
 
-        <Select value={paymentMonth} onValueChange={setPaymentMonth}>
-          <SelectTrigger className='h-10 w-full bg-background'>
-            <SelectValue placeholder='Select payment month' />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map((month) => (
-              <SelectItem key={month} value={month}>
-                {month}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className='mt-3 space-y-2'>
+        <p className='font-medium text-base sm:text-lg'>{fullname}</p>
+        <p className='text-xs sm:text-sm font-medium text-muted-foreground capitalize'>
+          {tier} Daily Contribution: ₦{dailyContribution.toLocaleString()}
+        </p>
+        <p className='text-xs sm:text-sm text-muted-foreground'>
+          Last Payment:{" "}
+          {lastPaymentDate
+            ? dayjs(lastPaymentDate).format("MMM D, YYYY [at] h:mm A")
+            : "No daily contribution found"}
+        </p>
 
         <SquadPayButton
           email={email}
-          amount={Math.max(0, Number(amount) || 0)}
+          amount={amount}
           publicKey={resolvedKey ?? ""}
-          paymentMonth={paymentMonth}
           onSuccess={handleSuccess}
+          lastPaymentDate={lastPaymentDate}
         />
       </div>
     </div>

@@ -53,6 +53,21 @@ export default function OnboardingComponent() {
   const [nokDob, setNokDob] = React.useState<Date | undefined>();
   const [openNokDob, setOpenNokDob] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [fullName, setFullName] = React.useState(
+    user?.fullName ||
+      `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ||
+      ""
+  );
+
+  // Update fullName when user data changes
+  React.useEffect(() => {
+    const userFullName =
+      user?.fullName ||
+      `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
+    if (userFullName && !fullName) {
+      setFullName(userFullName);
+    }
+  }, [user, fullName]);
 
   function clearFieldError(field: string): void {
     setFieldErrors((prev) => {
@@ -132,6 +147,7 @@ export default function OnboardingComponent() {
     const fd = new FormData(e.currentTarget);
     const payload = {
       fullName:
+        fullName ||
         user?.fullName ||
         `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim(),
       email: user?.primaryEmailAddress?.emailAddress || "",
@@ -262,6 +278,22 @@ export default function OnboardingComponent() {
           <section className='grid gap-4'>
             <h2 className='font-medium'>Personal Information</h2>
             <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-4'>
+              <div>
+                <Label>Full name</Label>
+                <Input
+                  name='fullName'
+                  value={fullName}
+                  onChange={(e) => {
+                    setFullName(e.target.value);
+                    clearFieldError("fullName");
+                  }}
+                />
+                {fieldErrors.fullName && (
+                  <p className='text-destructive text-xs mt-1'>
+                    {fieldErrors.fullName}
+                  </p>
+                )}
+              </div>
               <div>
                 <Label>Gender</Label>
                 <Select

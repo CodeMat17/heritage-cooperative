@@ -1,52 +1,77 @@
 "use client";
 
-import ContribSparkline from "@/components/ContribSparkline";
 import TransactionHistory from "@/components/TransactionHistory";
+import { Button } from "@/components/ui/button";
 import WalletCard from "@/components/WalletCard";
 import { api } from "@/convex/_generated/api";
 import { MEMBERSHIP_CATEGORIES, naira } from "@/lib/mock";
 import { Transaction } from "@/lib/types";
+import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 type Tier = "bronze" | "silver" | "gold" | "diamond" | "emerald";
 
-function TierSummary({ tier }: { tier: Tier }) {
-  return (
-    <div className='rounded-xl border bg-card p-5 shadow-md'>
-      <div className='flex items-center justify-between'>
-        <h2 className='text-lg font-semibold capitalize'>Your Tier: {tier}</h2>
-      </div>
-      <p className='mt-2 text-sm text-muted-foreground'>
-        Your contributions and benefits are based on your selected tier.
-      </p>
-    </div>
-  );
-}
+// function TierSummary({ tier }: { tier: Tier }) {
+//   return (
+//     <div className='rounded-xl border bg-card p-5 shadow-md'>
+//       <div className='flex items-center justify-between'>
+//         <h2 className='text-lg font-semibold capitalize'>Your Tier: {tier}</h2>
+//       </div>
+//       <p className='mt-2 text-sm text-muted-foreground'>
+//         Your contributions and benefits are based on your selected tier.
+//       </p>
+//     </div>
+//   );
+// }
 
 export default function DashboardPageContent() {
+  const { user, isLoaded } = useUser();
   const me = useQuery(api.users.getMe);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  // Fetch transaction data
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const response = await fetch("/api/mock");
-        const data = await response.json();
-        setTransactions(data.transactions || []);
-      } catch (error) {
-        console.error("Failed to fetch transactions:", error);
-        setTransactions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Get user contributions from Convex - only if user is authenticated
+  const userContributions = useQuery(api.userContributions.getByUserId, {
+    clerkUserId: me?.clerkUserId || "",
+  });
 
-    fetchTransactions();
-  }, []);
+  // Get user loan applications from Convex
+  const userLoanApplications = useQuery(
+    api.loanApplications.getUserLoanApplications
+  );
+
+  // Convert Convex data to Transaction format for TransactionHistory component
+  const contributionTransactions: Transaction[] = (userContributions || []).map(
+    (contribution) => ({
+      id: contribution._id,
+      type: "contribution" as const,
+      amountNaira: contribution.amount / 100, // Convert from kobo to Naira
+      note: `Payment via ${contribution.transactionType} - ${contribution.transactionStatus}`,
+      createdAtIso: new Date(contribution.processedAt).toISOString(),
+    })
+  );
+
+  // Convert loan applications to Transaction format
+  const loanTransactions: Transaction[] = (userLoanApplications || []).map(
+    (loan) => ({
+      id: loan._id,
+      type: "loan" as const,
+      amountNaira: loan.loanAmount,
+      note: `Loan application - ${loan.loanPurpose} (${loan.status})`,
+      createdAtIso: new Date(loan.submittedAt).toISOString(),
+    })
+  );
+
+  // Combine and sort all transactions by date (newest first)
+  const allTransactions = [
+    ...contributionTransactions,
+    ...loanTransactions,
+  ].sort(
+    (a, b) =>
+      new Date(b.createdAtIso).getTime() - new Date(a.createdAtIso).getTime()
+  );
+
+  const loading =
+    userContributions === undefined || userLoanApplications === undefined;
 
   if (me === undefined) {
     return <div className='p-6'>Loading...</div>;
@@ -54,7 +79,7 @@ export default function DashboardPageContent() {
 
   if (!me || !me.tier) {
     return (
-      <div className='max-w-7xl mx-auto px-4 py-8 min-h-screen'>
+      <div className='max-w-7xl mx-auto px-4 py-20 min-h-screen'>
         <h1 className='text-2xl md:text-3xl font-bold tracking-tight'>
           Dashboard
         </h1>
@@ -83,27 +108,37 @@ export default function DashboardPageContent() {
   const isEligibleForLoan = totalContributedAmount >= requiredAmount;
 
   return (
-    <div className='max-w-7xl mx-auto px-4 py-8 grid gap-6'>
-      <h1 className='text-2xl md:text-3xl font-bold tracking-tight'>
-        Dashboard
-      </h1>
-      <div className='flex flex-col gap-6 lg:flex-row'>
+    <div className='max-w-7xl mx-auto px-3 sm:px-6 py-20  grid gap-3 sm:gap-6'>
+      <div className='flex items-center justify-between mb-3'>
+        <h1 className='text-lg sm:text-2xl md:text-3xl font-bold tracking-tight'>
+          Dashboard
+        </h1>
+        {isLoaded && user && user.publicMetadata?.role === "admin" && (
+          <Button asChild>
+            <Link href='/dashboard/admin'>Admin Page</Link>
+          </Button>
+        )}
+      </div>
+
+      <div className='flex flex-col gap-3 sm:gap-6 lg:flex-row'>
         {/* <TierSummary tier={me.tier as Tier} /> */}
         <TierPackageDetails tier={me.tier as Tier} />
 
         {/* Contributions Summary */}
-        <div className='rounded-xl border bg-card p-5 shadow-md w-full'>
-          <h1 className='text-lg font-semibold mb-3'>Contributions Summary</h1>
-          <div className=''>
+        <div className='rounded-xl border bg-card p-3 sm:p-5 shadow-md w-full'>
+          <h1 className='text-base sm:text-lg font-semibold mb-3'>
+            Contributions Summary
+          </h1>
+          <div className='space-y-2'>
             <div className='flex justify-between items-center'>
-              <span className='text-sm text-muted-foreground'>
+              <span className='text-xs sm:text-sm text-muted-foreground'>
                 Total Contributed:
               </span>
-              <span className='font-medium'>
+              <span className='font-medium text-sm sm:text-base'>
                 {naira(totalContributedAmount)}
               </span>
             </div>
-          
+
             <div className='flex justify-between items-center'>
               <span className='text-sm text-muted-foreground'>
                 Due for Loan:
@@ -113,10 +148,10 @@ export default function DashboardPageContent() {
                 {isEligibleForLoan ? "Yes" : "No"}
               </span>
             </div>
-            <div className='pt-6'>
+            <div className='pt-4 sm:pt-6'>
               <button
                 disabled={!isEligibleForLoan}
-                className={`w-full h-9 items-center rounded-md px-3 text-sm font-medium transition-colors ${
+                className={`w-full h-9 items-center rounded-md px-3 text-xs sm:text-sm font-medium transition-colors ${
                   isEligibleForLoan
                     ? "bg-primary text-primary-foreground hover:opacity-90"
                     : "bg-muted text-muted-foreground cursor-not-allowed"
@@ -134,24 +169,26 @@ export default function DashboardPageContent() {
         </div>
 
         {/* Wallet Card */}
-        <WalletCard />
+        <WalletCard
+          id={me.clerkUserId}
+          userName={me.fullName}
+          userTier={me.tier}
+          userEmail={me.email}
+        />
       </div>
 
-   
-
-        {/* Transactions History */}
-        <div className='rounded-xl border bg-card p-6 shadow-md'>
-          {loading ? (
-            <div className='flex items-center justify-center py-8'>
-              <div className='text-muted-foreground'>
-                Loading transactions...
-              </div>
+      {/* Transactions History */}
+      <div className='rounded-xl border bg-card p-3 sm:p-6 shadow-md'>
+        {loading ? (
+          <div className='flex items-center justify-center py-6 sm:py-8'>
+            <div className='text-muted-foreground text-sm sm:text-base'>
+              Loading transactions...
             </div>
-          ) : (
-            <TransactionHistory transactions={transactions} />
-          )}
-        </div>
-   
+          </div>
+        ) : (
+          <TransactionHistory transactions={allTransactions} />
+        )}
+      </div>
     </div>
   );
 }

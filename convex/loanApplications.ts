@@ -44,18 +44,6 @@ export const getAllLoanApplications = query({
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
-
-    // Check admin role
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
-      .unique();
-
-    if (!user || user.role !== "admin") {
-      throw new Error("Admin privileges required");
-    }
     let applications;
     if (args.status) {
       applications = await ctx.db
@@ -117,7 +105,10 @@ export const getUserLoanApplications = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) {
+      // Return empty array instead of throwing error when not authenticated
+      return [];
+    }
 
     const clerkUserId = identity.subject;
     const applications = await ctx.db

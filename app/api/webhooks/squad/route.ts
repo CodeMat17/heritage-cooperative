@@ -21,8 +21,6 @@ export async function POST(request: NextRequest) {
     // For now, we'll parse the raw body (you'll need to implement decryption)
     const body = await request.json();
 
-    console.log("Received Squad webhook:", JSON.stringify(body, null, 2));
-
     // Validate the webhook structure
     if (!body.Event || !body.TransactionRef || !body.Body) {
       console.error("Invalid webhook structure");
@@ -49,7 +47,6 @@ export async function POST(request: NextRequest) {
     );
 
     if (existingTransaction) {
-      console.log(`Transaction ${body.TransactionRef} already processed`);
       return NextResponse.json({ status: "already_processed" });
     }
 
@@ -71,7 +68,6 @@ export async function POST(request: NextRequest) {
       clerkUserId: user.clerkUserId,
       fullName: user.fullName,
       email: transactionData.email,
-      paymentMonth: transactionData.meta?.paymentMonth || null, // Extract from meta if available
       transactionRef: body.TransactionRef,
       gatewayRef: transactionData.gateway_ref,
       amount: transactionData.amount,

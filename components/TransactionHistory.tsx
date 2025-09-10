@@ -126,9 +126,11 @@ export default function TransactionHistory({
 
   return (
     <div className='space-y-4 w-full'>
-      <div className='flex items-center justify-between'>
-        <h2 className='text-xl font-semibold'>Transaction History</h2>
-        <div className='text-sm text-muted-foreground'>
+      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2'>
+        <h2 className='text-lg sm:text-xl font-semibold'>
+          Transaction History
+        </h2>
+        <div className='text-xs sm:text-sm text-muted-foreground'>
           {sortedTransactions.length} total transactions
         </div>
       </div>
@@ -139,23 +141,23 @@ export default function TransactionHistory({
             key={transaction.id}
             className='hover:shadow-md transition-shadow'>
             <CardContent className='p-4'>
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center space-x-3'>
+              <div className='flex items-center justify-between gap-3'>
+                <div className='flex items-center space-x-3 min-w-0 flex-1'>
                   <div className='flex-shrink-0'>
                     {getTransactionIcon(transaction.type)}
                   </div>
                   <div className='flex-1 min-w-0'>
-                    <div className='flex items-center space-x-2'>
-                      <span className='font-medium text-sm'>
+                    <div className='flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2'>
+                      <span className='font-medium text-xs sm:text-sm'>
                         {getTransactionTypeLabel(transaction.type)}
                       </span>
                       <span
-                        className={`text-xs px-2 py-1 rounded-full bg-muted ${getTransactionColor(transaction.type)}`}>
+                        className={`text-xs px-2 py-1 rounded-full bg-muted ${getTransactionColor(transaction.type)} w-fit`}>
                         {transaction.type}
                       </span>
                     </div>
                     {transaction.note && (
-                      <p className='text-sm text-muted-foreground truncate'>
+                      <p className='text-xs sm:text-sm text-muted-foreground truncate'>
                         {transaction.note}
                       </p>
                     )}
@@ -166,9 +168,9 @@ export default function TransactionHistory({
                 </div>
                 <div className='flex-shrink-0 text-right'>
                   <div
-                    className={`font-semibold ${getTransactionColor(transaction.type)}`}>
-                    {getAmountPrefix(transaction.type)}
-                    N{(transaction.amountNaira)}
+                    className={`font-semibold text-xs sm:text-base ${getTransactionColor(transaction.type)}`}>
+                    {getAmountPrefix(transaction.type)}N
+                    {transaction.amountNaira}
                   </div>
                 </div>
               </div>
@@ -179,8 +181,8 @@ export default function TransactionHistory({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className='flex items-center justify-between pt-4'>
-          <div className='text-sm text-muted-foreground'>
+        <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 gap-4'>
+          <div className='text-xs sm:text-sm text-muted-foreground hidden sm:block'>
             Showing {startIndex + 1} to{" "}
             {Math.min(endIndex, sortedTransactions.length)} of{" "}
             {sortedTransactions.length} transactions
@@ -192,7 +194,7 @@ export default function TransactionHistory({
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}>
               <ChevronLeft className='h-4 w-4' />
-              Previous
+              <span className='hidden sm:inline'>Previous</span>
             </Button>
             <div className='flex items-center space-x-1'>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(
@@ -213,7 +215,7 @@ export default function TransactionHistory({
               size='sm'
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}>
-              Next
+              <span className='hidden sm:inline'>Next</span>
               <ChevronRight className='h-4 w-4' />
             </Button>
           </div>
