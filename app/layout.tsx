@@ -1,10 +1,10 @@
 import ConvexClientProvider from "@/components/ConvexClientProvider";
-import Header from "@/components/Header";
 import { Toaster } from "@/components/ui/sonner";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,51 +12,29 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Heritage Cooperative App",
-  description: "Cooperative savings with PiggyVest-like experience",
+  title: "Heritage Multipurpose Cooperative Society",
+  description:
+    "Save daily, build wealth, and access loans. Heritage Cooperative helps Nigerians grow together.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider>
-      <html lang='en' suppressHydrationWarning>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-          <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
+      <html lang="en" suppressHydrationWarning>
+        <body className={`${geistSans.variable} antialiased`}>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <ConvexClientProvider>
-              <Header />
               {children}
-              <Toaster position='top-right' />
-              <footer className='mt-16 border-t text-sm text-muted-foreground'>
-                <div className='mx-auto max-w-6xl px-4 py-6 sm:py-8 flex flex-col gap-2 md:flex-row md:items-center md:justify-between'>
-                  <div>
-                    © {new Date().getFullYear()} Heritage Cooperative Society
-                  </div>
-                  <div className='flex gap-4'>
-                    <a className='hover:underline' href='/about'>
-                      About
-                    </a>
-                    <a className='hover:underline' href='/faqs'>
-                      FAQs
-                    </a>
-                    <a className='hover:underline' href='/contact'>
-                      Contact
-                    </a>
-                  </div>
-                </div>
-              </footer>
+              <Toaster position="top-right" richColors />
             </ConvexClientProvider>
           </ThemeProvider>
+          <Script
+            src="https://checkout.squadco.com/widget/squad.min.js"
+            strategy="afterInteractive"
+          />
         </body>
       </html>
     </ClerkProvider>

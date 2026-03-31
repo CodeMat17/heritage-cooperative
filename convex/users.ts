@@ -84,7 +84,44 @@ export const setUserTier = mutation({
     if (!existing) {
       throw new Error("User profile not found. Complete onboarding first.");
     }
-    await ctx.db.patch(existing._id, { tier });
+    const patch: { tier: string; tierStartDate?: string } = { tier };
+    if (!existing.tierStartDate) {
+      patch.tierStartDate = new Date().toISOString().split("T")[0];
+    }
+    await ctx.db.patch(existing._id, patch);
+  },
+});
+
+// Change package — blocked if a loan is pending or approved
+export const changeUserPackage = mutation({
+  args: { tier: v.string() },
+  handler: async (ctx, { tier }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+    const clerkUserId = identity.subject;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
+      .unique();
+    if (!user) throw new Error("User profile not found.");
+
+    // Block if any loan is pending or approved (i.e. active)
+    const loans = await ctx.db
+      .query("loanApplications")
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
+      .collect();
+
+    const hasActiveLoan = loans.some(
+      (l) => l.status === "pending" || l.status === "approved"
+    );
+    if (hasActiveLoan) {
+      throw new Error(
+        "Package cannot be changed while a loan is pending or active. Repay your loan first."
+      );
+    }
+
+    await ctx.db.patch(user._id, { tier });
   },
 });
 
@@ -159,10 +196,11 @@ export const getUserById = query({
 export const getByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
-    const users = await ctx.db.query("users").collect();
     return (
-      users.find((user) => user.email.toLowerCase() === email.toLowerCase()) ||
-      null
+      (await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .unique()) ?? null
     );
   },
 });

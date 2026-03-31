@@ -7,6 +7,7 @@ export default defineSchema({
     fullName: v.string(),
     email: v.string(),
     tier: v.optional(v.string()),
+    tierStartDate: v.optional(v.string()), // ISO date when package was selected
     totalContributed: v.optional(v.number()), // Total amount contributed in Naira
     role: v.optional(v.string()), // "admin", "user", etc.
 
@@ -51,7 +52,9 @@ export default defineSchema({
     nokPhoneNumber: v.string(),
     nokEmail: v.string(),
     nokHouseAddress: v.string(),
-  }).index("by_clerkUserId", ["clerkUserId"]),
+  })
+    .index("by_clerkUserId", ["clerkUserId"])
+    .index("by_email", ["email"]),
 
   userContributions: defineTable({
     clerkUserId: v.string(),

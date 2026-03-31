@@ -1,4 +1,5 @@
 import { ConvexHttpClient } from "convex/browser";
+import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { api } from "../../../../convex/_generated/api";
 
@@ -6,20 +7,41 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the encrypted body from headers
-    const encryptedBody = request.headers.get("x-squad-encrypted-body");
+    // Read raw body text for signature verification
+    const rawBody = await request.text();
 
-    if (!encryptedBody) {
-      console.error("Missing x-squad-encrypted-body header");
+    // Verify Squad webhook signature (HMAC-SHA512)
+    const signature = request.headers.get("x-squad-encrypted-body");
+    if (!signature) {
+      console.error("Squad webhook: missing x-squad-encrypted-body header");
+      return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+    }
+
+    const secretKey = process.env.SQUAD_SECRET_KEY;
+    if (!secretKey) {
+      console.error("Squad webhook: SQUAD_SECRET_KEY not configured");
       return NextResponse.json(
-        { error: "Missing encrypted body" },
-        { status: 400 }
+        { error: "Server configuration error" },
+        { status: 500 }
       );
     }
 
-    // TODO: Decrypt the body using Squad's encryption key
-    // For now, we'll parse the raw body (you'll need to implement decryption)
-    const body = await request.json();
+    const expected = createHmac("sha512", secretKey)
+      .update(rawBody)
+      .digest("hex");
+
+    // Use timing-safe comparison to prevent timing attacks
+    const sigBuf = Buffer.from(signature, "hex");
+    const expBuf = Buffer.from(expected, "hex");
+    const signatureValid =
+      sigBuf.length === expBuf.length && timingSafeEqual(sigBuf, expBuf);
+
+    if (!signatureValid) {
+      console.error("Squad webhook: signature mismatch — request rejected");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody);
 
     // Validate the webhook structure
     if (!body.Event || !body.TransactionRef || !body.Body) {
@@ -69,21 +91,21 @@ export async function POST(request: NextRequest) {
       fullName: user.fullName,
       email: transactionData.email,
       transactionRef: body.TransactionRef,
-      gatewayRef: transactionData.gateway_ref,
+      gatewayRef: transactionData.gateway_ref ?? undefined,
       amount: transactionData.amount,
-      merchantAmount: transactionData.merchant_amount,
-      currency: transactionData.currency,
-      transactionStatus: transactionData.transaction_status,
-      transactionType: transactionData.transaction_type,
-      paymentType: paymentInfo.payment_type,
-      cardType: paymentInfo.card_type,
-      pan: paymentInfo.pan,
-      tokenId: paymentInfo.token_id,
-      customerMobile: transactionData.customer_mobile,
-      isRecurring: transactionData.is_recurring,
-      meta: transactionData.meta,
-      merchantId: transactionData.merchant_id,
-      squadCreatedAt: transactionData.created_at,
+      merchantAmount: transactionData.merchant_amount ?? transactionData.amount,
+      currency: transactionData.currency ?? "NGN",
+      transactionStatus: transactionData.transaction_status ?? "unknown",
+      transactionType: transactionData.transaction_type ?? "unknown",
+      paymentType: paymentInfo.payment_type ?? undefined,
+      cardType: paymentInfo.card_type ?? undefined,
+      pan: paymentInfo.pan ?? undefined,
+      tokenId: paymentInfo.token_id ?? undefined,
+      customerMobile: transactionData.customer_mobile ?? undefined,
+      isRecurring: transactionData.is_recurring ?? undefined,
+      meta: transactionData.meta ?? undefined,
+      merchantId: transactionData.merchant_id ?? undefined,
+      squadCreatedAt: transactionData.created_at ?? new Date().toISOString(),
       processedAt: Date.now(),
       isProcessed: true,
       processingNotes: "Webhook processed successfully",

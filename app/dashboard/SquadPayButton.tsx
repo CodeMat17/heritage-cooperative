@@ -1,230 +1,107 @@
-// app/components/SquadPayButton.tsx
-"use client"; // Marks this as a client-side component
+"use client";
 
-import { Button } from "@/components/ui/button"; // Assuming Shadcn UI for styling
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { toast } from "sonner";
 
 interface SquadPayProps {
   email: string;
-  amount: number; // Amount in Naira (will be multiplied by 100 internally)
+  amount: number; // in Naira — multiplied by 100 internally
   publicKey: string;
-  lastPaymentDate?: number | null;
+  meta?: Record<string, string>;
+  disabled?: boolean;
+  children: React.ReactNode;
   onSuccess?: () => void;
   onClose?: () => void;
-  onLoad?: () => void;
 }
 
-// Define the Squad instance type based on the widget's API
-interface SquadOptions {
-  onClose: () => void;
-  onLoad: () => void;
-  onSuccess: () => void;
-  key: string;
-  email: string;
-  amount: number;
-  currency_code: string;
-  meta?: Record<string, string>;
-}
-
-interface SquadInstance {
-  setup: () => void;
-  open: () => void;
-}
-
-// Extend the window interface to include the squad constructor
 declare global {
   interface Window {
-    squad: {
-      new (options: SquadOptions): SquadInstance;
-    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    squad: any;
   }
 }
 
-function isValidEmailAddress(value: string): boolean {
-  const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return pattern.test(value);
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 export default function SquadPayButton({
   email,
   amount,
   publicKey,
-  lastPaymentDate,
+  meta,
+  disabled,
+  children,
   onSuccess,
   onClose,
-  onLoad,
 }: SquadPayProps) {
-  const [scriptLoaded, setScriptLoaded] = useState(false);
-  const squadInstanceRef = useRef<SquadInstance | null>(null);
-  const router = useRouter();
+  const openingRef = useRef(false);
 
-  // Check if user has made payment for today
-  const hasPaidToday = () => {
-    if (!lastPaymentDate) return false;
-
-    const today = new Date();
-    const lastPayment = new Date(lastPaymentDate);
-
-    return (
-      today.getFullYear() === lastPayment.getFullYear() &&
-      today.getMonth() === lastPayment.getMonth() &&
-      today.getDate() === lastPayment.getDate()
-    );
-  };
-
-  const paidToday = hasPaidToday();
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-  const lastPaymentFormatted = lastPaymentDate
-    ? new Date(lastPaymentDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "";
-
-  // Dynamic webhook URL based on environment
-  // const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-
-  // Dynamically load Squad script
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://checkout.squadco.com/widget/squad.min.js";
-    script.async = true;
-    script.onload = () => setScriptLoaded(true);
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
-  // Initialize Squad instance when script is loaded
-  useEffect(() => {
-    if (!scriptLoaded || !window.squad) return;
-
-    const hasEmail = typeof email === "string" && email.trim().length > 0;
-    const hasAmount = typeof amount === "number" && amount > 0;
-    const emailValid = hasEmail && isValidEmailAddress(email);
-
-    if (!publicKey || !hasEmail || !hasAmount || !emailValid) {
-      // Do not initialize the widget until we have valid values
-      squadInstanceRef.current = null;
-      return;
-    }
-
-    const options: SquadOptions = {
+  const launchWidget = () => {
+    const squadInstance = new window.squad({
       onClose: () => {
-        console.log("Widget closed");
+        openingRef.current = false;
         onClose?.();
       },
-      onLoad: () => {
-        console.log("Widget loaded successfully");
-        onLoad?.();
-      },
+      onLoad: () => {},
       onSuccess: () => {
-        console.log("Payment linked successfully");
+        openingRef.current = false;
         onSuccess?.();
-        // Refresh the dashboard to show updated data
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000); // Small delay to ensure webhook processes
+        setTimeout(() => window.location.reload(), 1500);
       },
       key: publicKey,
       email,
-      amount: amount * 100, // Convert to kobo (NGN)
+      amount: amount * 100, // kobo
       currency_code: "NGN",
-    };
-
-    squadInstanceRef.current = new window.squad(options);
-    squadInstanceRef.current.setup();
-  }, [
-    scriptLoaded,
-    email,
-    amount,
-    onSuccess,
-    onClose,
-    onLoad,
-    publicKey,
-    router,
-  ]);
+      ...(meta ? { meta } : {}),
+    });
+    squadInstance.setup();
+    squadInstance.open();
+  };
 
   const handlePayment = () => {
-    const hasEmail = typeof email === "string" && email.trim().length > 0;
-    const hasAmount = typeof amount === "number" && amount > 0;
-
+    if (openingRef.current) return;
     if (!publicKey) {
-      toast.error(
-        "Payment configuration missing. Set SQUAD_PUBLIC_KEY in your server env."
-      );
+      toast.error("Payment is not configured. Please contact support.");
+      return;
+    }
+    if (!email || !isValidEmail(email)) {
+      toast.error("A valid email address is required.");
+      return;
+    }
+    if (!amount || amount <= 0) {
+      toast.error("Payment amount is missing.");
       return;
     }
 
-    if (!hasEmail && !hasAmount) {
-      toast.warning("Please provide your email and amount.");
-      return;
-    }
+    openingRef.current = true;
 
-    if (!hasEmail) {
-      toast.error("Email is required.");
-      return;
-    }
+    // Poll for up to 5 seconds in case the script is still initializing
+    const waitForSquad = (retries = 20): void => {
+      if (typeof window.squad !== "undefined") {
+        launchWidget();
+        return;
+      }
+      if (retries <= 0) {
+        openingRef.current = false;
+        toast.error(
+          "Payment widget failed to load. Make sure this domain is whitelisted in your Squad dashboard."
+        );
+        return;
+      }
+      setTimeout(() => waitForSquad(retries - 1), 250);
+    };
 
-    if (hasEmail && !isValidEmailAddress(email)) {
-      toast.error("Please enter a valid email address.");
-      return;
-    }
-
-    if (!hasAmount) {
-      toast.error("Amount is required.");
-      return;
-    }
-
-    // Ensure instance is initialized with current validated values
-    if (!squadInstanceRef.current && window.squad) {
-      const options: SquadOptions = {
-        onClose: () => {
-          console.log("Widget closed");
-          onClose?.();
-        },
-        onLoad: () => {
-          console.log("Widget loaded successfully");
-          onLoad?.();
-        },
-        onSuccess: () => {
-          console.log("Payment linked successfully");
-          onSuccess?.();
-        },
-        key: publicKey,
-        email,
-        amount: amount * 100,
-        currency_code: "NGN",
-      };
-      squadInstanceRef.current = new window.squad(options);
-      squadInstanceRef.current.setup();
-    }
-
-    if (squadInstanceRef.current) {
-      squadInstanceRef.current.open();
-    } else {
-      console.error("Squad instance not initialized");
-    }
+    waitForSquad();
   };
 
   return (
-  
-    <Button
+    <button
       onClick={handlePayment}
-      disabled={!scriptLoaded || !publicKey || paidToday}
-      className={paidToday ? "bg-blue-200 text-blue-600" : ""}>
-      {paidToday
-        ? `You have paid for today  (${lastPaymentFormatted})`
-        : `Pay Daily Contribution - ${currentDate}`}
-    </Button>
+      disabled={disabled || !publicKey}
+      className="w-full h-12 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+    >
+      {children}
+    </button>
   );
 }

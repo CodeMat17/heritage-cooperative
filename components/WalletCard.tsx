@@ -125,8 +125,9 @@ export default function WalletCard({
           amount={amount}
           publicKey={resolvedKey ?? ""}
           onSuccess={handleSuccess}
-          lastPaymentDate={lastPaymentDate}
-        />
+        >
+          Pay Daily Contribution
+        </SquadPayButton>
       </div>
     </div>
   );
