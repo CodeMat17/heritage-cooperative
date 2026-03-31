@@ -13,7 +13,7 @@ const Header = () => {
   return (
     <div className='sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b shadow-sm'>
       <div className='w-full flex items-center justify-between max-w-7xl mx-auto px-4 py-3'>
-        <div className='text-sm sm:text-base font-medium'>Heritage Coop</div>
+        <div className=' text-sm sm:text-base font-medium'>Heritage Coop</div>
         <div className='flex items-center gap-1 sm:gap-2'>
           <button
             aria-label='Toggle theme'

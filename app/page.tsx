@@ -162,9 +162,9 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14 sm:h-16">
           <Link href="/" className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center">
-              <Building2 className="h-4 w-4 text-white" />
+              <Building2 className="shrink-0 h-4 w-4 text-white" />
             </div>
-            <span className="font-bold text-sm sm:text-base">
+            <span className="hidden sm:block font-bold text-sm sm:text-base">
               Heritage Cooperative
             </span>
           </Link>

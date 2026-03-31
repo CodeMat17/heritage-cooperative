@@ -39,9 +39,9 @@ export default function DashboardLayout({
       <aside className="fixed left-0 top-0 h-full w-60 border-r bg-card hidden lg:flex flex-col z-30">
         <div className="flex items-center gap-2.5 px-5 py-5 border-b">
           <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
-            <Building2 className="h-4 w-4 text-white" />
+            <Building2 className="shrink-0 h-4 w-4 text-white" />
           </div>
-          <span className="font-bold text-sm leading-tight">
+          <span className="hidden font-bold text-sm leading-tight">
             Heritage Cooperative
           </span>
         </div>
