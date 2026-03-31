@@ -44,6 +44,14 @@ export const getAllLoanApplications = query({
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "admin") throw new Error("Admin privileges required");
+
     let applications;
     if (args.status) {
       applications = await ctx.db

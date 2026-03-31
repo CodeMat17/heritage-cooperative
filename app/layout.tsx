@@ -4,7 +4,6 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import { Geist } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,10 +30,6 @@ export default function RootLayout({
               <Toaster position="top-right" richColors />
             </ConvexClientProvider>
           </ThemeProvider>
-          <Script
-            src="https://checkout.squadco.com/widget/squad.min.js"
-            strategy="afterInteractive"
-          />
         </body>
       </html>
     </ClerkProvider>

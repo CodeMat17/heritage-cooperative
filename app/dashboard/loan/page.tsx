@@ -57,13 +57,24 @@ function naira(n: number) {
 }
 
 function countUniqueDays(
-  contributions: Array<{ processedAt: number; transactionStatus: string }>
+  contributions: Array<{ processedAt: number; transactionStatus: string; meta?: Record<string, unknown> }>
 ): number {
-  const dates = new Set(
-    contributions
-      .filter((c) => c.transactionStatus.toLowerCase() === "success")
-      .map((c) => new Date(c.processedAt).toISOString().split("T")[0])
-  );
+  const dates = new Set<string>();
+  for (const c of contributions) {
+    if (c.transactionStatus.toLowerCase() !== "success") continue;
+    if (c.meta?.coveredDates) {
+      try {
+        const covered = JSON.parse(c.meta.coveredDates as string) as string[];
+        if (Array.isArray(covered) && covered.length > 0) {
+          covered.forEach((d) => dates.add(d));
+          continue;
+        }
+      } catch {
+        // fall through
+      }
+    }
+    dates.add(new Date(c.processedAt).toISOString().split("T")[0]);
+  }
   return dates.size;
 }
 

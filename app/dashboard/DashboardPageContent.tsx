@@ -1,6 +1,6 @@
 "use client";
 
-import SquadPayButton from "@/app/dashboard/SquadPayButton";
+import SquadPayButton, { type SquadMetadata } from "@/app/dashboard/SquadPayButton";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
@@ -228,7 +228,7 @@ function ContributionPaySection({
 
   const totalAmount = dailyAmount * selectedDays;
 
-  const meta: Record<string, string> = {
+  const metadata: SquadMetadata = {
     coveredDates: JSON.stringify(coveredDates),
     daysCount: String(selectedDays),
   };
@@ -335,7 +335,7 @@ function ContributionPaySection({
         email={email}
         amount={totalAmount}
         publicKey={publicKey}
-        meta={meta}
+        metadata={metadata}
         onSuccess={() => {}}
       >
         Pay {naira(totalAmount)} for {selectedDays} {selectedDays === 1 ? "day" : "days"}

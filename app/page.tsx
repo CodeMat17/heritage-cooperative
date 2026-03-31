@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const PACKAGES = [
   {
@@ -96,7 +96,7 @@ const FAQS = [
   },
   {
     q: "Can I change my package after selecting one?",
-    a: "Your package is fixed once contributions begin. Contact our support team if you need an upgrade reviewed by the admin.",
+    a: "Yes — you can switch packages at any time before applying for a loan. Your existing contribution days are preserved; only the daily amount and loan entitlement change. Package changes are locked once a loan application is pending or approved.",
   },
   {
     q: "How is the loan amount determined?",
@@ -148,6 +148,8 @@ export default function HomePage() {
   const { isSignedIn, sessionClaims } = useAuth();
   const { theme, setTheme } = useTheme();
   const isOnboardingComplete = sessionClaims?.metadata?.onboardingComplete;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const [calcIndex, setCalcIndex] = useState(2);
   const pkg = PACKAGES[calcIndex];
@@ -188,11 +190,11 @@ export default function HomePage() {
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="h-8 w-8 flex items-center justify-center rounded-md border hover:bg-muted transition-colors"
             >
-              {theme === "dark" ? (
+              {mounted && (theme === "dark" ? (
                 <Sun className="h-4 w-4" />
               ) : (
                 <Moon className="h-4 w-4" />
-              )}
+              ))}
             </button>
             {isSignedIn && isOnboardingComplete ? (
               <Button asChild size="sm">

@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       tokenId: paymentInfo.token_id ?? undefined,
       customerMobile: transactionData.customer_mobile ?? undefined,
       isRecurring: transactionData.is_recurring ?? undefined,
-      meta: transactionData.meta ?? undefined,
+      meta: transactionData.metadata ?? transactionData.meta ?? undefined,
       merchantId: transactionData.merchant_id ?? undefined,
       squadCreatedAt: transactionData.created_at ?? new Date().toISOString(),
       processedAt: Date.now(),

@@ -172,11 +172,16 @@ export const getByClerkId = query({
 export const getAllUsers = query({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "admin") throw new Error("Admin privileges required");
+
     const users = await ctx.db.query("users").collect();
-
-    // Sort by fullName
     users.sort((a, b) => a.fullName.localeCompare(b.fullName));
-
     return users;
   },
 });
