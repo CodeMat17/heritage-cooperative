@@ -254,27 +254,34 @@ export default function OnboardingPage() {
     };
 
     setSubmitting(true);
-    const res = await completeOnboarding(fd);
-    if (res?.error) {
-      toast.error(res.error);
+
+    try {
+      // Step 1 — save profile to Convex first while the user is already authenticated.
+      // This must happen before completeOnboarding() because that call updates the
+      // Clerk JWT, which triggers a WebSocket reconnect in Convex. Calling upsertUser
+      // after that reconnect causes an "Unauthenticated" race condition.
+      await upsertUser(payload);
+
+      // Step 2 — mark onboarding complete in Clerk
+      const res = await completeOnboarding(fd);
+      if (res?.error) {
+        toast.error(res.error);
+        setSubmitting(false);
+        return;
+      }
+
+      // Step 3 — reload the Clerk session so the new JWT (with onboardingComplete: true)
+      // is available for the middleware redirect check on /dashboard
+      await user?.reload();
+
+      toast.success("Profile complete! Now choose your package.");
+      router.push("/dashboard/select-package");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to save profile. Please try again.";
+      toast.error(msg);
+    } finally {
       setSubmitting(false);
-      return;
     }
-    await user?.reload();
-    type Result = { message?: { onboardingComplete?: boolean } };
-    const serverDone = Boolean((res as Result)?.message?.onboardingComplete);
-    const clientDone = Boolean(
-      (user?.publicMetadata as { onboardingComplete?: boolean })?.onboardingComplete
-    );
-    if (!serverDone && !clientDone) {
-      toast.error("Onboarding not confirmed. Please try again.");
-      setSubmitting(false);
-      return;
-    }
-    await upsertUser(payload);
-    toast.success("Profile complete! Now choose your package.");
-    router.push("/dashboard/select-package");
-    setSubmitting(false);
   }
 
   const displayName =

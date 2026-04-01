@@ -42,7 +42,7 @@ export default function DashboardLayout({
             <Building2 className="shrink-0 h-4 w-4 text-white" />
           </div>
           <span className="hidden font-bold text-sm leading-tight">
-            Heritage Cooperative
+            Heritage Cooperative...
           </span>
         </div>
 
