@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Heritage Cooperative",
-    short_name: "Heritage",
+    short_name: "Heritage Coop",
     description: "Save daily. Build wealth. Access loans.",
     id: "/",
     start_url: "/",
