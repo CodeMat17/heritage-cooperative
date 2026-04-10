@@ -57,7 +57,7 @@ const step1Schema = z.object({
     }),
   residentialAddress: z.string().min(1, "Residential address is required"),
   permanentAddress: z.string().min(1, "Permanent address is required"),
-  taxIdentificationNumber: z.string().min(1, "TIN is required"),
+  taxIdentificationNumber: z.string().optional(),
   typeOfTrade: z.string().min(1, "Type of trade is required"),
   yearsInTrade: z.number().nonnegative(),
   otherTradeOrSkill: z.string().optional(),
@@ -106,10 +106,9 @@ export default function OnboardingPage() {
   const router = useRouter();
   const upsertUser = useMutation(api.users.upsertUserFromOnboarding);
 
-  // Step 1 state
-  const [fullName, setFullName] = React.useState(
-    user?.fullName || `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || ""
-  );
+  // Step 1 state — fullName seeded from Clerk, read from FormData on submit
+  const defaultFullName =
+    user?.fullName || `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || "";
   const [gender, setGender] = React.useState("");
   const [maritalStatus, setMaritalStatus] = React.useState("");
   const [meansOfIdentification, setMeansOfIdentification] = React.useState("");
@@ -132,11 +131,6 @@ export default function OnboardingPage() {
   // Form ref to read uncontrolled inputs
   const formRef = React.useRef<HTMLFormElement>(null);
 
-  React.useEffect(() => {
-    const name =
-      user?.fullName || `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
-    if (name && !fullName) setFullName(name);
-  }, [user, fullName]);
 
   function clearErr(field: string) {
     setFieldErrors((prev) => {
@@ -149,7 +143,7 @@ export default function OnboardingPage() {
 
   function collectStep1(fd: FormData) {
     return {
-      fullName,
+      fullName: String(fd.get("fullName") || ""),
       email: user?.primaryEmailAddress?.emailAddress || "",
       gender,
       nickName: String(fd.get("nickName") || ""),
@@ -165,7 +159,7 @@ export default function OnboardingPage() {
       otherPhoneNumber: String(fd.get("otherPhoneNumber") || ""),
       residentialAddress: String(fd.get("residentialAddress") || ""),
       permanentAddress: String(fd.get("permanentAddress") || ""),
-      taxIdentificationNumber: String(fd.get("taxIdentificationNumber") || ""),
+      taxIdentificationNumber: String(fd.get("taxIdentificationNumber") || "") || undefined,
       typeOfTrade: String(fd.get("typeOfTrade") || ""),
       yearsInTrade: Number(fd.get("yearsInTrade") || 0),
       otherTradeOrSkill: String(fd.get("otherTradeOrSkill") || ""),
@@ -375,8 +369,8 @@ export default function OnboardingPage() {
                   <Label>Full name *</Label>
                   <Input
                     name="fullName"
-                    value={fullName}
-                    onChange={(e) => { setFullName(e.target.value); clearErr("fullName"); }}
+                    defaultValue={defaultFullName}
+                    onChange={() => clearErr("fullName")}
                   />
                   <FieldError error={fieldErrors.fullName} />
                 </div>
@@ -485,7 +479,7 @@ export default function OnboardingPage() {
                   <FieldError error={fieldErrors.permanentAddress} />
                 </div>
                 <div>
-                  <Label>Tax identification number *</Label>
+                  <Label>Tax identification number</Label>
                   <Input name="taxIdentificationNumber" onChange={() => clearErr("taxIdentificationNumber")} />
                   <FieldError error={fieldErrors.taxIdentificationNumber} />
                 </div>
@@ -527,6 +521,7 @@ export default function OnboardingPage() {
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar mode="single" selected={idStart} captionLayout="dropdown"
+                        fromYear={2000} toYear={2060}
                         onSelect={(d) => { setIdStart(d as Date | undefined); setOpenIdStart(false); clearErr("meansOfIdentificationStartDate"); }} />
                     </PopoverContent>
                   </Popover>
@@ -543,6 +538,7 @@ export default function OnboardingPage() {
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar mode="single" selected={idExpiry} captionLayout="dropdown"
+                        fromYear={2000} toYear={2060}
                         onSelect={(d) => { setIdExpiry(d as Date | undefined); setOpenIdExpiry(false); clearErr("meansOfIdentificationExpiryDate"); }} />
                     </PopoverContent>
                   </Popover>

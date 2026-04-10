@@ -19,7 +19,7 @@ export const upsertUserFromOnboarding = mutation({
     otherPhoneNumber: v.optional(v.string()),
     residentialAddress: v.string(),
     permanentAddress: v.string(),
-    taxIdentificationNumber: v.string(),
+    taxIdentificationNumber: v.optional(v.string()),
     typeOfTrade: v.string(),
     yearsInTrade: v.number(),
     otherTradeOrSkill: v.optional(v.string()),
@@ -68,6 +68,20 @@ export const upsertUserFromOnboarding = mutation({
         ...rest,
       });
     }
+  },
+});
+
+export const syncRole = mutation({
+  args: { role: v.optional(v.string()) },
+  handler: async (ctx, { role }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
+      .unique();
+    if (!existing) return; // not onboarded yet, nothing to sync
+    await ctx.db.patch(existing._id, { role: role ?? undefined });
   },
 });
 

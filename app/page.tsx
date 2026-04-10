@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 import {
   Award,
   BadgePercent,
@@ -201,9 +202,12 @@ export default function HomePage() {
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
             ) : isSignedIn ? (
-              <Button asChild size="sm">
-                <Link href="/onboarding">Complete Setup</Link>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button asChild size="sm">
+                  <Link href="/onboarding">Complete Setup</Link>
+                </Button>
+                <UserButton />
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Button asChild variant="ghost" size="sm">

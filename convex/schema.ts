@@ -26,7 +26,7 @@ export default defineSchema({
     otherPhoneNumber: v.optional(v.string()),
     residentialAddress: v.string(),
     permanentAddress: v.string(),
-    taxIdentificationNumber: v.string(),
+    taxIdentificationNumber: v.optional(v.string()),
     typeOfTrade: v.string(),
     yearsInTrade: v.number(),
     otherTradeOrSkill: v.optional(v.string()),
