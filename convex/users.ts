@@ -187,16 +187,16 @@ export const getAllUsers = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
-    // Check JWT claim first (set via Clerk JWT template), then fall back to DB role
+    if (!identity) return null;
+    // Check JWT role claim (requires Clerk JWT template to include role)
     const jwtRole = (identity as Record<string, unknown>).role as string | undefined;
-    if (jwtRole !== "admin") {
-      const caller = await ctx.db
-        .query("users")
-        .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
-        .unique();
-      if (!caller || caller.role !== "admin") throw new Error("Admin privileges required");
-    }
+    // Fall back to DB role if JWT claim is absent
+    const role = jwtRole ?? (await ctx.db
+      .query("users")
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
+      .unique()
+    )?.role;
+    if (role !== "admin") return null;
 
     const users = await ctx.db.query("users").collect();
     users.sort((a, b) => a.fullName.localeCompare(b.fullName));

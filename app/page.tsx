@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { UserButton } from "@clerk/nextjs";
 import {
   Award,
@@ -15,6 +15,7 @@ import {
   Gem,
   Medal,
   Moon,
+  Shield,
   ShieldCheck,
   Sun,
   Trophy,
@@ -147,6 +148,8 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 export default function HomePage() {
   const { isSignedIn, sessionClaims } = useAuth();
+  const { user } = useUser();
+  const isAdmin = user?.publicMetadata?.role === "admin";
   const { theme, setTheme } = useTheme();
   const isOnboardingComplete = sessionClaims?.metadata?.onboardingComplete;
   const [mounted, setMounted] = useState(false);
@@ -198,9 +201,29 @@ export default function HomePage() {
               ))}
             </button>
             {isSignedIn && isOnboardingComplete ? (
-              <Button asChild size="sm">
-                <Link href="/dashboard">Dashboard</Link>
-              </Button>
+              <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/dashboard/admin">
+                      <Shield className="h-3.5 w-3.5 mr-1.5" />
+                      Admin
+                    </Link>
+                  </Button>
+                )}
+                <Button asChild size="sm">
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
+              </div>
+            ) : isSignedIn && isAdmin ? (
+              <div className="flex items-center gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/dashboard/admin">
+                    <Shield className="h-3.5 w-3.5 mr-1.5" />
+                    Admin
+                  </Link>
+                </Button>
+                <UserButton />
+              </div>
             ) : isSignedIn ? (
               <div className="flex items-center gap-2">
                 <Button asChild size="sm">
@@ -692,6 +715,13 @@ export default function HomePage() {
                     Dashboard
                   </Link>
                 </li>
+                {isAdmin && (
+                  <li>
+                    <Link href="/dashboard/admin" className="hover:text-foreground">
+                      Admin
+                    </Link>
+                  </li>
+                )}
               </ul>
             </div>
           </div>

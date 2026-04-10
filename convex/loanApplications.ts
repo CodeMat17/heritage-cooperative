@@ -45,16 +45,14 @@ export const getAllLoanApplications = query({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
-    // Check JWT claim first (set via Clerk JWT template), then fall back to DB role
+    if (!identity) return [];
     const jwtRole = (identity as Record<string, unknown>).role as string | undefined;
-    if (jwtRole !== "admin") {
-      const caller = await ctx.db
-        .query("users")
-        .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
-        .unique();
-      if (!caller || caller.role !== "admin") throw new Error("Admin privileges required");
-    }
+    const role = jwtRole ?? (await ctx.db
+      .query("users")
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
+      .unique()
+    )?.role;
+    if (role !== "admin") return [];
 
     let applications;
     if (args.status) {

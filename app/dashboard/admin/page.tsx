@@ -98,6 +98,23 @@ export default function AdminPage() {
   });
   const updateLoanStatus = useMutation(api.loanApplications.updateLoanApplicationStatus);
 
+  // users is null when the JWT role claim is missing — show a reload prompt
+  if (users === null) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-20 text-center space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Session is still initialising. Please wait a moment and reload.
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-sm text-emerald-600 underline underline-offset-2"
+        >
+          Reload now
+        </button>
+      </div>
+    );
+  }
+
   const filteredUsers = users?.filter((u) => {
     if (!userSearch) return true;
     const q = userSearch.toLowerCase();

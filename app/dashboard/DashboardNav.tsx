@@ -8,12 +8,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function DashboardNav({ isAdmin }: { isAdmin: boolean }) {
+export default function DashboardNav({ isAdmin: isAdminProp }: { isAdmin: boolean }) {
   const { user } = useUser();
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Use client-side metadata as the source of truth — it's always fresh from Clerk.
+  // Fall back to the server-passed prop while useUser() is still loading.
+  const isAdmin = user ? user.publicMetadata?.role === "admin" : isAdminProp;
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
