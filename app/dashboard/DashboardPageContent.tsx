@@ -654,8 +654,8 @@ export default function DashboardPageContent() {
           </div>
         ) : (
           <div className="divide-y">
-            {contributions.slice(0, 20).map((c) => {
-              const tc = c as Contribution;
+            {contributions.slice(0, 20).map((c: Contribution) => {
+              const tc = c;
               let daysLabel = "";
               if (tc.meta?.coveredDates) {
                 try {
