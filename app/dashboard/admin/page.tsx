@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import {
   Award,
@@ -115,7 +115,7 @@ export default function AdminPage() {
     );
   }
 
-  const filteredUsers = users?.filter((u) => {
+  const filteredUsers = users?.filter((u: Doc<"users">) => {
     if (!userSearch) return true;
     const q = userSearch.toLowerCase();
     return (
@@ -126,7 +126,7 @@ export default function AdminPage() {
     );
   });
 
-  const filteredLoans = loans?.filter((l) => {
+  const filteredLoans = loans?.filter((l: Doc<"loanApplications">) => {
     if (!loanSearch) return true;
     const q = loanSearch.toLowerCase();
     return (
@@ -136,7 +136,7 @@ export default function AdminPage() {
     );
   });
 
-  const reviewingLoan = loans?.find((l) => l._id === reviewingId);
+  const reviewingLoan = loans?.find((l: Doc<"loanApplications">) => l._id === reviewingId);
 
   async function handleLoanAction(status: "approved" | "rejected") {
     if (!reviewingId) return;
@@ -160,21 +160,21 @@ export default function AdminPage() {
     },
     {
       label: "With Package",
-      value: users?.filter((u) => u.tier).length ?? "—",
+      value: users?.filter((u: Doc<"users">) => u.tier).length ?? "—",
       icon: Banknote,
       color: "text-emerald-600",
       bg: "bg-emerald-500/10",
     },
     {
       label: "Pending Loans",
-      value: loans?.filter((l) => l.status === "pending").length ?? "—",
+      value: loans?.filter((l: Doc<"loanApplications">) => l.status === "pending").length ?? "—",
       icon: Clock,
       color: "text-amber-600",
       bg: "bg-amber-500/10",
     },
     {
       label: "Approved Loans",
-      value: loans?.filter((l) => l.status === "approved").length ?? "—",
+      value: loans?.filter((l: Doc<"loanApplications">) => l.status === "approved").length ?? "—",
       icon: CheckCircle2,
       color: "text-green-600",
       bg: "bg-green-500/10",
@@ -254,7 +254,7 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="divide-y">
-                {filteredUsers.map((u) => {
+                {filteredUsers.map((u: Doc<"users">) => {
                   const PkgIcon = u.tier ? PACKAGE_ICONS[u.tier as PackageId] : null;
                   const pkgColor = u.tier ? PACKAGE_COLORS[u.tier as PackageId] : "";
                   return (
@@ -415,7 +415,7 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="divide-y">
-                {filteredLoans.map((loan) => (
+                {filteredLoans.map((loan: Doc<"loanApplications">) => (
                   <div
                     key={loan._id}
                     className="flex items-center gap-4 px-4 sm:px-5 py-4 hover:bg-muted/40 transition-colors"

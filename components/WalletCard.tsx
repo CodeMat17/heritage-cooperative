@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Doc } from "../convex/_generated/dataModel";
 import { api } from "../convex/_generated/api";
 
 export default function WalletCard({
@@ -55,7 +56,7 @@ export default function WalletCard({
     }
 
     const successfulPayments = lastPayment.filter(
-      (payment) =>
+      (payment: Doc<"userContributions">) =>
         payment.transactionStatus === "success" ||
         payment.transactionStatus === "Success"
     );
@@ -66,7 +67,7 @@ export default function WalletCard({
 
     // Sort by processedAt and get the most recent
     const mostRecent = successfulPayments.sort(
-      (a, b) => b.processedAt - a.processedAt
+      (a: Doc<"userContributions">, b: Doc<"userContributions">) => b.processedAt - a.processedAt
     )[0];
     return mostRecent.processedAt;
   };

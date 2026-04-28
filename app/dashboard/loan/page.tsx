@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import {
   Award,
@@ -133,8 +134,8 @@ export default function LoanPage() {
   const maxLoan = me?.tier ? PACKAGE_LOANS[me.tier as PackageId] || 0 : 0;
   const PackageIcon = me?.tier ? PACKAGE_ICONS[me.tier as PackageId] : Banknote;
 
-  const pendingApp = loanApplications?.find((a) => a.status === "pending");
-  const approvedApp = loanApplications?.find((a) => a.status === "approved");
+  const pendingApp = loanApplications?.find((a: Doc<"loanApplications">) => a.status === "pending");
+  const approvedApp = loanApplications?.find((a: Doc<"loanApplications">) => a.status === "approved");
   const hasActiveLoan = !!pendingApp || !!approvedApp;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -289,7 +290,7 @@ export default function LoanPage() {
             <h2 className="font-semibold">Loan Applications</h2>
           </div>
           <div className="divide-y">
-            {loanApplications.map((app) => (
+            {loanApplications.map((app: Doc<"loanApplications">) => (
               <div key={app._id} className="px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>

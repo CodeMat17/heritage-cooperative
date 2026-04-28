@@ -25,7 +25,11 @@ export const processSquadPayment = action({
     merchantId: v.optional(v.string()),
     squadCreatedAt: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<
+    | { status: "already_processed" }
+    | { status: "user_not_found" }
+    | { status: "success"; contributionId: string }
+  > => {
     if (args.webhookSecret !== process.env.CONVEX_WEBHOOK_SECRET) {
       throw new Error("Unauthorized");
     }

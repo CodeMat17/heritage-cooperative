@@ -23,6 +23,19 @@ export const createLoanApplication = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
 
+    if (args.loanAmount <= 0) throw new Error("Loan amount must be positive");
+    if (args.monthlyIncome < 0) throw new Error("Monthly income cannot be negative");
+    const validPeriods = [3, 6, 9, 12];
+    if (!validPeriods.includes(args.repaymentPeriod)) throw new Error("Repayment period must be 3, 6, 9, or 12 months");
+
+    const TIER_MAX: Record<string, number> = {
+      bronze: 100_000,
+      silver: 180_000,
+      gold: 360_000,
+      diamond: 1_000_000,
+      emerald: 2_000_000,
+    };
+
     const clerkUserId = identity.subject;
     const user = await ctx.db
       .query("users")
@@ -31,6 +44,9 @@ export const createLoanApplication = mutation({
 
     if (!user)
       throw new Error("User profile not found. Complete onboarding first.");
+
+    const tierMax = user.tier ? (TIER_MAX[user.tier] ?? 0) : 0;
+    if (args.loanAmount > tierMax) throw new Error(`Loan amount exceeds maximum for your package (${tierMax})`);
 
     await ctx.db.insert("loanApplications", {
       clerkUserId,
@@ -102,6 +118,8 @@ export const updateLoanApplicationStatus = mutation({
     if (!user || user.role !== "admin") {
       throw new Error("Admin privileges required");
     }
+    const validStatuses = ["pending", "approved", "rejected", "repaid"];
+    if (!validStatuses.includes(status)) throw new Error("Invalid status value");
     const loan = await ctx.db.get(id);
     await ctx.db.patch(id, {
       status,
