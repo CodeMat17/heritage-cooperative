@@ -1,8 +1,12 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 
-// Create a new user contribution
-export const create = mutation({
+function jwtRole(identity: Record<string, unknown>): string | undefined {
+  return identity.role as string | undefined;
+}
+
+// Internal — called only from the Squad webhook Convex action
+export const create = internalMutation({
   args: {
     clerkUserId: v.string(),
     fullName: v.string(),
@@ -32,8 +36,8 @@ export const create = mutation({
   },
 });
 
-// Get contribution by transaction reference
-export const getByTransactionRef = query({
+// Internal — called only from the Squad webhook Convex action
+export const getByTransactionRef = internalQuery({
   args: { transactionRef: v.string() },
   handler: async (ctx, args) => {
     const contributions = await ctx.db
@@ -42,35 +46,45 @@ export const getByTransactionRef = query({
         q.eq("transactionRef", args.transactionRef)
       )
       .collect();
-
     return contributions[0] || null;
   },
 });
 
-// Get all contributions for a user
+// Returns contributions for a single user. Users may only query their own;
+// admins may query any clerkUserId.
 export const getByUserId = query({
   args: { clerkUserId: v.string() },
-  handler: async (ctx, args) => {
+  handler: async (ctx, { clerkUserId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+    const isAdmin = jwtRole(identity as Record<string, unknown>) === "admin";
+    if (!isAdmin && identity.subject !== clerkUserId) throw new Error("Forbidden");
     return await ctx.db
       .query("userContributions")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", args.clerkUserId))
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
       .order("desc")
       .collect();
   },
 });
 
-// Get all contributions (for admin)
+// Admin only
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+    if (jwtRole(identity as Record<string, unknown>) !== "admin") throw new Error("Forbidden");
     return await ctx.db.query("userContributions").order("desc").collect();
   },
 });
 
-// Get contributions by status
+// Admin only
 export const getByStatus = query({
   args: { status: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+    if (jwtRole(identity as Record<string, unknown>) !== "admin") throw new Error("Forbidden");
     return await ctx.db
       .query("userContributions")
       .withIndex("by_status", (q) => q.eq("transactionStatus", args.status))
@@ -79,28 +93,16 @@ export const getByStatus = query({
   },
 });
 
-// Get unprocessed contributions
+// Admin only
 export const getUnprocessed = query({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+    if (jwtRole(identity as Record<string, unknown>) !== "admin") throw new Error("Forbidden");
     return await ctx.db
       .query("userContributions")
       .withIndex("by_processed", (q) => q.eq("isProcessed", false))
       .collect();
-  },
-});
-
-// Update contribution processing status
-export const updateProcessingStatus = mutation({
-  args: {
-    id: v.id("userContributions"),
-    isProcessed: v.boolean(),
-    processingNotes: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.patch(args.id, {
-      isProcessed: args.isProcessed,
-      processingNotes: args.processingNotes,
-    });
   },
 });

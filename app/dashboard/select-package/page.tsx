@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Diamond,
   Gem,
-  Lock,
   Medal,
   Trophy,
 } from "lucide-react";
@@ -86,15 +85,15 @@ function naira(n: number) {
 
 export default function SelectPackagePage() {
   const me = useQuery(api.users.getMe);
-  const loanApplications = useQuery(api.loanApplications.getUserLoanApplications);
   const setUserTier = useMutation(api.users.setUserTier);
-  const changeUserPackage = useMutation(api.users.changeUserPackage);
+  const confirmContinue = useMutation(api.users.confirmContinuePackage);
   const router = useRouter();
 
   const [submittingId, setSubmittingId] = React.useState<string | null>(null);
   const [confirmed, setConfirmed] = React.useState<string | null>(null);
+  const [continuingPackage, setContinuingPackage] = React.useState(false);
 
-  if (me === undefined || loanApplications === undefined) {
+  if (me === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="h-8 w-8 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
@@ -105,40 +104,42 @@ export default function SelectPackagePage() {
   const isFirstTime = !me?.tier;
   const currentTier = me?.tier;
 
-  // Active loan = pending or approved
-  const hasActiveLoan = loanApplications.some(
-    (l) => l.status === "pending" || l.status === "approved"
-  );
+  // Access guard: returning users may only be here when canSelectPackage is set
+  if (!isFirstTime && !me?.canSelectPackage) {
+    router.replace("/dashboard");
+    return null;
+  }
 
   async function handleSelect(packageId: string) {
-    if (packageId === currentTier) return; // already on this package
-
     if (confirmed === packageId) {
-      // Second click = execute
       try {
         setSubmittingId(packageId);
-        if (isFirstTime) {
-          await setUserTier({ tier: packageId });
-          toast.success(
-            `${packageId.charAt(0).toUpperCase() + packageId.slice(1)} package activated!`
-          );
-        } else {
-          await changeUserPackage({ tier: packageId });
-          toast.success(
-            `Package changed to ${packageId.charAt(0).toUpperCase() + packageId.slice(1)}. Your contribution days are preserved.`
-          );
-        }
+        await setUserTier({ tier: packageId });
+        toast.success(
+          `${packageId.charAt(0).toUpperCase() + packageId.slice(1)} package ${isFirstTime ? "activated" : "selected"}!`
+        );
         router.replace("/dashboard");
       } catch (err: unknown) {
-        const msg =
-          err instanceof Error ? err.message : "Failed to change package.";
-        toast.error(msg);
+        toast.error(err instanceof Error ? err.message : "Failed to set package.");
       } finally {
         setSubmittingId(null);
         setConfirmed(null);
       }
     } else {
       setConfirmed(packageId);
+    }
+  }
+
+  async function handleContinue() {
+    try {
+      setContinuingPackage(true);
+      await confirmContinue({});
+      toast.success("Continuing with your current package. Your new cycle begins now.");
+      router.replace("/dashboard");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setContinuingPackage(false);
     }
   }
 
@@ -153,16 +154,16 @@ export default function SelectPackagePage() {
           <Banknote className="h-7 w-7 text-emerald-600" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold">
-          {isFirstTime ? "Choose Your Savings Package" : "Change Package"}
+          {isFirstTime ? "Choose Your Savings Package" : "Choose Your Next Package"}
         </h1>
         <p className="text-muted-foreground mt-2 max-w-lg mx-auto text-sm">
           {isFirstTime
             ? "Select the package that matches your daily savings capacity. You'll contribute this amount every day for 90 days to unlock your loan."
-            : "You can change your package before applying for a loan. Your contribution days are preserved — only the daily amount and loan entitlement change."}
+            : "Your loan has been repaid. Select a package for your next savings cycle, or continue with your current one."}
         </p>
       </div>
 
-      {/* Current Package Banner (change mode only) */}
+      {/* Continue with current package (returning users only) */}
       {!isFirstTime && currentPkg && CurrentIcon && (
         <div
           className={`mb-8 rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 ${currentPkg.bg} border-${currentPkg.ring.replace("ring-", "")}`}
@@ -181,43 +182,14 @@ export default function SelectPackagePage() {
               {naira(currentPkg.daily)}/day · {naira(currentPkg.loan)} loan entitlement
             </p>
           </div>
-          {hasActiveLoan && (
-            <div className="flex items-center gap-2 bg-background/80 rounded-xl px-4 py-2.5 border text-sm">
-              <Lock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <span className="text-muted-foreground">
-                Package locked — active loan exists
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Loan lock warning */}
-      {hasActiveLoan && !isFirstTime && (
-        <div className="mb-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-5 flex items-start gap-3">
-          <Lock className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold text-sm text-red-600 dark:text-red-400">
-              Package change is locked
-            </p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              You have a pending or approved loan. Repay your loan in full
-              before switching packages.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Change rules (non-first-time only) */}
-      {!isFirstTime && !hasActiveLoan && (
-        <div className="mb-6 rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
-          <span className="mt-0.5">⚠️</span>
-          <span>
-            <strong>Before you change:</strong> your existing contribution days
-            are preserved. If you upgrade to a higher package, you must pay
-            the new daily amount going forward. Your loan entitlement will
-            be based on the new package once you reach 90 days.
-          </span>
+          <button
+            disabled={continuingPackage}
+            onClick={handleContinue}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-60"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            {continuingPackage ? "Confirming…" : "Continue with this package"}
+          </button>
         </div>
       )}
 
@@ -227,24 +199,18 @@ export default function SelectPackagePage() {
           const isCurrent = pkg.id === currentTier;
           const isConfirming = confirmed === pkg.id;
           const isSubmitting = submittingId === pkg.id;
-          const isLocked = hasActiveLoan && !isFirstTime;
-          const isDisabled = isLocked || isCurrent;
 
           return (
             <div
               key={pkg.id}
               className={`relative rounded-2xl border bg-card p-5 shadow-sm transition-all ${
-                isCurrent
-                  ? "ring-2 ring-emerald-600 border-emerald-600/30"
-                  : isConfirming
-                    ? "ring-2 ring-amber-500 border-amber-500/30"
-                    : isDisabled
-                      ? "opacity-50"
-                      : "hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
-              } ${pkg.popular && !isCurrent ? "lg:scale-105" : ""}`}
-              onClick={() => !isDisabled && !isSubmitting && handleSelect(pkg.id)}
+                isConfirming
+                  ? "ring-2 ring-amber-500 border-amber-500/30"
+                  : "hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+              } ${pkg.popular ? "lg:scale-105" : ""}`}
+              onClick={() => !isSubmitting && handleSelect(pkg.id)}
             >
-              {pkg.popular && !isCurrent && (
+              {pkg.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="bg-emerald-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
                     Most Popular
@@ -252,10 +218,9 @@ export default function SelectPackagePage() {
                 </div>
               )}
 
-              {isCurrent && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-emerald-600 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
+              {isCurrent && !isFirstTime && (
+                <div className="absolute -top-3 right-4">
+                  <span className="bg-slate-500 text-white text-xs font-medium px-2 py-0.5 rounded-full">
                     Current
                   </span>
                 </div>
@@ -301,31 +266,17 @@ export default function SelectPackagePage() {
               </div>
 
               <button
-                disabled={isDisabled || isSubmitting}
+                disabled={isSubmitting}
                 className={`w-full h-10 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-                  isCurrent
-                    ? "bg-emerald-600/10 text-emerald-600 cursor-default"
-                    : isLocked
-                      ? "bg-muted text-muted-foreground cursor-not-allowed"
-                      : isConfirming
-                        ? "bg-amber-500 text-white hover:bg-amber-600"
-                        : `${pkg.bg} ${pkg.color} ring-1 ${pkg.ring} hover:opacity-80`
-                } disabled:cursor-not-allowed`}
+                  isConfirming
+                    ? "bg-amber-500 text-white hover:bg-amber-600"
+                    : `${pkg.bg} ${pkg.color} ring-1 ${pkg.ring} hover:opacity-80`
+                } disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 {isSubmitting ? (
                   "Applying…"
-                ) : isCurrent ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    Active package
-                  </>
-                ) : isLocked ? (
-                  <>
-                    <Lock className="h-4 w-4" />
-                    Locked
-                  </>
                 ) : isConfirming ? (
-                  `Confirm switch to ${pkg.name}`
+                  `Confirm — ${pkg.name}`
                 ) : (
                   <>
                     {isFirstTime ? "Select" : "Switch to"} {pkg.name}
@@ -340,11 +291,7 @@ export default function SelectPackagePage() {
 
       {/* Footer note */}
       <p className="text-center text-xs text-muted-foreground mt-8 max-w-xl mx-auto">
-        {isFirstTime
-          ? "All packages require 90 days of consistent daily contributions to qualify for a loan. Missed days do not count."
-          : hasActiveLoan
-            ? "Package switching is disabled while you have an active or pending loan. Repay your loan to unlock this."
-            : "Switching packages preserves your contribution days. The new daily amount and loan entitlement apply immediately. Package cannot be changed once a loan application is submitted."}
+        All packages require 90 days of consistent daily contributions to qualify for a loan. Missed days do not count.
       </p>
     </div>
   );

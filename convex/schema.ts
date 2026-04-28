@@ -9,6 +9,7 @@ export default defineSchema({
     tier: v.optional(v.string()),
     tierStartDate: v.optional(v.string()), // ISO date when package was selected
     totalContributed: v.optional(v.number()), // Total amount contributed in Naira
+    canSelectPackage: v.optional(v.boolean()), // true = user is prompted to pick/confirm package (set when admin marks loan repaid)
     role: v.optional(v.string()), // "admin", "user", etc.
 
     // Onboarding fields

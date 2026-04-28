@@ -1,5 +1,9 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+
+function jwtRole(identity: Record<string, unknown>): string | undefined {
+  return identity.role as string | undefined;
+}
 
 export const upsertUserFromOnboarding = mutation({
   args: {
@@ -71,11 +75,14 @@ export const upsertUserFromOnboarding = mutation({
   },
 });
 
+// Syncs the role from the Clerk JWT session claim into the DB.
+// No client-supplied role — the value comes exclusively from the verified JWT.
 export const syncRole = mutation({
-  args: { role: v.optional(v.string()) },
-  handler: async (ctx, { role }) => {
+  args: {},
+  handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
+    const role = jwtRole(identity as Record<string, unknown>);
     const existing = await ctx.db
       .query("users")
       .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
@@ -98,44 +105,26 @@ export const setUserTier = mutation({
     if (!existing) {
       throw new Error("User profile not found. Complete onboarding first.");
     }
-    const patch: { tier: string; tierStartDate?: string } = { tier };
-    if (!existing.tierStartDate) {
-      patch.tierStartDate = new Date().toISOString().split("T")[0];
-    }
-    await ctx.db.patch(existing._id, patch);
+    await ctx.db.patch(existing._id, {
+      tier,
+      tierStartDate: new Date().toISOString().split("T")[0],
+      canSelectPackage: undefined,
+    });
   },
 });
 
-// Change package — blocked if a loan is pending or approved
-export const changeUserPackage = mutation({
-  args: { tier: v.string() },
-  handler: async (ctx, { tier }) => {
+// User confirms they want to continue with their current package (after loan repayment)
+export const confirmContinuePackage = mutation({
+  args: {},
+  handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
-    const clerkUserId = identity.subject;
-
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
       .unique();
     if (!user) throw new Error("User profile not found.");
-
-    // Block if any loan is pending or approved (i.e. active)
-    const loans = await ctx.db
-      .query("loanApplications")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
-      .collect();
-
-    const hasActiveLoan = loans.some(
-      (l) => l.status === "pending" || l.status === "approved"
-    );
-    if (hasActiveLoan) {
-      throw new Error(
-        "Package cannot be changed while a loan is pending or active. Repay your loan first."
-      );
-    }
-
-    await ctx.db.patch(user._id, { tier });
+    await ctx.db.patch(user._id, { canSelectPackage: undefined });
   },
 });
 
@@ -175,11 +164,14 @@ export const getMe = query({
 export const getByClerkId = query({
   args: { clerkUserId: v.string() },
   handler: async (ctx, { clerkUserId }) => {
-    const user = await ctx.db
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+    const isAdmin = jwtRole(identity as Record<string, unknown>) === "admin";
+    if (!isAdmin && identity.subject !== clerkUserId) throw new Error("Forbidden");
+    return await ctx.db
       .query("users")
       .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
       .unique();
-    return user;
   },
 });
 
@@ -188,16 +180,7 @@ export const getAllUsers = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
-    // Check JWT role claim (requires Clerk JWT template to include role)
-    const jwtRole = (identity as Record<string, unknown>).role as string | undefined;
-    // Fall back to DB role if JWT claim is absent
-    const role = jwtRole ?? (await ctx.db
-      .query("users")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
-      .unique()
-    )?.role;
-    if (role !== "admin") return null;
-
+    if (jwtRole(identity as Record<string, unknown>) !== "admin") return null;
     const users = await ctx.db.query("users").collect();
     users.sort((a, b) => a.fullName.localeCompare(b.fullName));
     return users;
@@ -209,14 +192,13 @@ export const getUserById = query({
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
-
-    const user = await ctx.db.get(id);
-    return user;
+    if (jwtRole(identity as Record<string, unknown>) !== "admin") throw new Error("Forbidden");
+    return await ctx.db.get(id);
   },
 });
 
-// Get user by email (for webhook processing)
-export const getByEmail = query({
+// Internal — called only from the Squad webhook Convex action
+export const getByEmail = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
     return (
@@ -228,22 +210,22 @@ export const getByEmail = query({
   },
 });
 
-// Update total contribution (for webhook processing)
-export const updateTotalContribution = mutation({
+// Internal — called only from the Squad webhook Convex action.
+// Accepts the contribution amount in kobo and adds it to the current DB total
+// atomically, so retried actions cannot double-count.
+export const updateTotalContribution = internalMutation({
   args: {
     clerkUserId: v.string(),
-    totalContributed: v.number(),
+    amountKobo: v.number(),
   },
-  handler: async (ctx, { clerkUserId, totalContributed }) => {
+  handler: async (ctx, { clerkUserId, amountKobo }) => {
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
       .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    await ctx.db.patch(user._id, { totalContributed });
+    if (!user) throw new Error("User not found");
+    await ctx.db.patch(user._id, {
+      totalContributed: (user.totalContributed ?? 0) + amountKobo / 100,
+    });
   },
 });

@@ -1,6 +1,10 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+function jwtRole(identity: Record<string, unknown>): string | undefined {
+  return identity.role as string | undefined;
+}
+
 export const createLoanApplication = mutation({
   args: {
     loanAmount: v.number(),
@@ -46,13 +50,7 @@ export const getAllLoanApplications = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
-    const jwtRole = (identity as Record<string, unknown>).role as string | undefined;
-    const role = jwtRole ?? (await ctx.db
-      .query("users")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
-      .unique()
-    )?.role;
-    if (role !== "admin") return [];
+    if (jwtRole(identity as Record<string, unknown>) !== "admin") return [];
 
     let applications;
     if (args.status) {
@@ -77,8 +75,10 @@ export const getLoanApplicationById = query({
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
-
+    const isAdmin = jwtRole(identity as Record<string, unknown>) === "admin";
     const application = await ctx.db.get(id);
+    // Users may only view their own application; admins may view any
+    if (!isAdmin && application?.clerkUserId !== identity.subject) throw new Error("Forbidden");
     return application;
   },
 });
@@ -102,12 +102,24 @@ export const updateLoanApplicationStatus = mutation({
     if (!user || user.role !== "admin") {
       throw new Error("Admin privileges required");
     }
+    const loan = await ctx.db.get(id);
     await ctx.db.patch(id, {
       status,
       reviewedAt: Date.now(),
       reviewedBy: identity.subject,
       reviewNotes,
     });
+
+    // When a loan is marked repaid, unlock package selection for the borrower
+    if (status === "repaid" && loan) {
+      const borrower = await ctx.db
+        .query("users")
+        .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", loan.clerkUserId))
+        .unique();
+      if (borrower) {
+        await ctx.db.patch(borrower._id, { canSelectPackage: true });
+      }
+    }
   },
 });
 

@@ -447,14 +447,29 @@ export default function DashboardPageContent() {
             <Icon className="h-3.5 w-3.5 mr-1.5" />
             {me.tier} Package
           </Badge>
-          <Link
-            href="/dashboard/select-package"
-            className="text-xs text-muted-foreground hover:text-emerald-600 transition-colors"
-          >
-            Change package →
-          </Link>
         </div>
       </div>
+
+      {/* ── Package selection prompt (shown after loan repayment) ── */}
+      {me.canSelectPackage && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 flex items-start gap-3">
+          <span className="text-xl mt-0.5">🎉</span>
+          <div className="flex-1">
+            <p className="font-semibold text-amber-700 dark:text-amber-400">
+              Your loan has been repaid — time to choose your next package!
+            </p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              You can continue with your current <span className="capitalize font-medium">{me.tier}</span> package or switch to a different one. This must be done before your next contribution cycle begins.
+            </p>
+            <Link
+              href="/dashboard/select-package"
+              className="inline-block mt-3 px-4 py-2 rounded-xl bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 transition-colors"
+            >
+              Choose Package →
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* ── Stats Grid ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

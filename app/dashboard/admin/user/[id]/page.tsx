@@ -155,8 +155,6 @@ const UserDetailsPage = () => {
   const userId = params.id as Id<"users">;
 
   const [activeTab, setActiveTab] = useState("overview");
-  const [isEditingTier, setIsEditingTier] = useState(false);
-  const [newTier, setNewTier] = useState("");
   const [reviewNotes, setReviewNotes] = useState("");
   const [selectedApplication, setSelectedApplication] =
     useState<LoanApplication | null>(null);
@@ -173,7 +171,6 @@ const UserDetailsPage = () => {
   ) as LoanApplication[] | undefined;
 
   // Mutations
-  const updateUserTier = useMutation(api.users.setUserTier);
   const updateLoanStatus = useMutation(
     api.loanApplications.updateLoanApplicationStatus
   );
@@ -222,18 +219,6 @@ const UserDetailsPage = () => {
     );
   }
 
-  const handleUpdateTier = async () => {
-    try {
-      await updateUserTier({ tier: newTier });
-      toast.success("User tier updated successfully");
-      setIsEditingTier(false);
-      setNewTier("");
-    } catch (error) {
-      toast.error("Failed to update user tier");
-      console.error(error);
-    }
-  };
-
   const handleUpdateLoanStatus = async (
     id: Id<"loanApplications">,
     status: string
@@ -277,6 +262,7 @@ const UserDetailsPage = () => {
       pending: "bg-yellow-100 text-yellow-800",
       approved: "bg-green-100 text-green-800",
       rejected: "bg-red-100 text-red-800",
+      repaid: "bg-emerald-100 text-emerald-800",
       success: "bg-green-100 text-green-800",
       failed: "bg-red-100 text-red-800",
     };
@@ -910,7 +896,7 @@ const UserDetailsPage = () => {
                                     </div>
                                   </div>
 
-                                  {selectedApplication.status === "pending" && (
+                                  {(selectedApplication.status === "pending" || selectedApplication.status === "approved") && (
                                     <div className='space-y-4'>
                                       <div>
                                         <Label>Review Notes</Label>
@@ -922,29 +908,46 @@ const UserDetailsPage = () => {
                                           }
                                         />
                                       </div>
-                                      <div className='flex gap-2'>
-                                        <Button
-                                          onClick={() =>
-                                            handleUpdateLoanStatus(
-                                              selectedApplication._id,
-                                              "approved"
-                                            )
-                                          }
-                                          className='bg-green-600 hover:bg-green-700'>
-                                          <CheckCircle className='h-4 w-4 mr-2' />
-                                          Approve
-                                        </Button>
-                                        <Button
-                                          onClick={() =>
-                                            handleUpdateLoanStatus(
-                                              selectedApplication._id,
-                                              "rejected"
-                                            )
-                                          }
-                                          variant='destructive'>
-                                          <XCircle className='h-4 w-4 mr-2' />
-                                          Reject
-                                        </Button>
+                                      <div className='flex flex-wrap gap-2'>
+                                        {selectedApplication.status === "pending" && (
+                                          <Button
+                                            onClick={() =>
+                                              handleUpdateLoanStatus(
+                                                selectedApplication._id,
+                                                "approved"
+                                              )
+                                            }
+                                            className='bg-green-600 hover:bg-green-700'>
+                                            <CheckCircle className='h-4 w-4 mr-2' />
+                                            Approve
+                                          </Button>
+                                        )}
+                                        {selectedApplication.status === "pending" && (
+                                          <Button
+                                            onClick={() =>
+                                              handleUpdateLoanStatus(
+                                                selectedApplication._id,
+                                                "rejected"
+                                              )
+                                            }
+                                            variant='destructive'>
+                                            <XCircle className='h-4 w-4 mr-2' />
+                                            Reject
+                                          </Button>
+                                        )}
+                                        {selectedApplication.status === "approved" && (
+                                          <Button
+                                            onClick={() =>
+                                              handleUpdateLoanStatus(
+                                                selectedApplication._id,
+                                                "repaid"
+                                              )
+                                            }
+                                            className='bg-emerald-600 hover:bg-emerald-700'>
+                                            <CheckCircle className='h-4 w-4 mr-2' />
+                                            Mark as Repaid
+                                          </Button>
+                                        )}
                                       </div>
                                     </div>
                                   )}
@@ -981,56 +984,15 @@ const UserDetailsPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className='space-y-6'>
-              {/* Tier Management */}
-              <div className='space-y-4'>
-                <div className='flex flex-col gap-2'>
-                  <div>
-                    <h3 className='font-semibold'>User Tier</h3>
-                    <p className='text-sm text-muted-foreground'>
-                      Current tier: {userData.tier || "No tier assigned"}
-                    </p>
-                  </div>
-                  {isEditingTier ? (
-                    <div className='flex items-center gap-2'>
-                      <Select value={newTier} onValueChange={setNewTier}>
-                        <SelectTrigger className='w-40'>
-                          <SelectValue placeholder='Select tier' />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value='bronze'>Bronze</SelectItem>
-                          <SelectItem value='silver'>Silver</SelectItem>
-                          <SelectItem value='gold'>Gold</SelectItem>
-                          <SelectItem value='diamond'>Diamond</SelectItem>
-                          <SelectItem value='emerald'>Emerald</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button size='sm' onClick={handleUpdateTier}>
-                        <Save className='w-4 h-4' />
-                        Save
-                      </Button>
-                      <Button
-                        size='sm'
-                        variant='outline'
-                        onClick={() => {
-                          setIsEditingTier(false);
-                          setNewTier("");
-                        }}>
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      size='sm'
-                      variant='outline'
-                      onClick={() => {
-                        setIsEditingTier(true);
-                        setNewTier(userData.tier || "");
-                      }}>
-                      <Edit className='w-4 h-4 mr-2' />
-                      Edit Tier
-                    </Button>
-                  )}
-                </div>
+              {/* User Info */}
+              <div className='space-y-1'>
+                <h3 className='font-semibold'>Current Package</h3>
+                <p className='text-sm text-muted-foreground capitalize'>
+                  {userData.tier || "No package assigned"}
+                </p>
+                <p className='text-xs text-muted-foreground'>
+                  Package can only be changed by the user after a loan is marked as repaid.
+                </p>
               </div>
 
               {/* User Statistics */}
