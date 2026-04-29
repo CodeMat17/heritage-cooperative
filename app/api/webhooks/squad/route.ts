@@ -2,6 +2,8 @@ import { ConvexHttpClient } from "convex/browser";
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { api } from "../../../../convex/_generated/api";
+import type { SquadWebhookBody } from "@/types/squad";
+
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const body = JSON.parse(rawBody);
+    const body = JSON.parse(rawBody) as SquadWebhookBody;
 
     if (!body.Event || !body.TransactionRef || !body.Body) {
       return NextResponse.json({ error: "Invalid webhook structure" }, { status: 400 });

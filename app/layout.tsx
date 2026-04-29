@@ -1,7 +1,7 @@
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { ClerkProvider } from "@clerk/nextjs";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "next-themes";
 import { Geist } from "next/font/google";
 import "./globals.css";
@@ -11,12 +11,15 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#059669",
+};
+
 export const metadata: Metadata = {
   title: "Heritage Multipurpose Cooperative Society",
   description:
     "Save daily, build wealth, and access loans. Heritage Cooperative helps Nigerians grow together.",
   manifest: "/manifest.webmanifest",
-  themeColor: "#059669",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

@@ -13,7 +13,7 @@ export default function DashboardNav({ isAdmin: isAdminProp }: { isAdmin: boolea
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => { setMounted(true); user?.reload(); }, [user]);
 
   // Use client-side metadata as the source of truth — it's always fresh from Clerk.
   // Fall back to the server-passed prop while useUser() is still loading.

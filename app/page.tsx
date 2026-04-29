@@ -153,7 +153,7 @@ export default function HomePage() {
   const { theme, setTheme } = useTheme();
   const isOnboardingComplete = sessionClaims?.metadata?.onboardingComplete;
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => { setMounted(true); user?.reload(); }, [user]);
 
   const [calcIndex, setCalcIndex] = useState(2);
   const pkg = PACKAGES[calcIndex];
@@ -213,6 +213,7 @@ export default function HomePage() {
                 <Button asChild size="sm">
                   <Link href="/dashboard">Dashboard</Link>
                 </Button>
+                <UserButton />
               </div>
             ) : isSignedIn && isAdmin ? (
               <div className="flex items-center gap-2">

@@ -1,5 +1,8 @@
 "use client";
 
+import { useSquadScript } from "@/hooks/useSquadScript";
+import { verifySquadPayment } from "@/lib/verifySquadPayment";
+import { SquadSuccessData, SquadVerifyResponse } from "@/types/squad";
 /**
  * SquadPayButton — Heritage Cooperative
  *
@@ -14,93 +17,62 @@
  * 3. Point your Squad webhook URL to: https://<your-domain>/api/webhooks/squad
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    squad: any;
-  }
-}
-
-export interface SquadMetadata {
-  coveredDates: string;  // JSON-stringified string[] of YYYY-MM-DD dates
-  daysCount: string;     // stringified number
+export interface SquadMetadata extends Record<string, unknown> {
+  coveredDates?: string;
+  daysCount?: string;
 }
 
 interface SquadPayButtonProps {
   email: string;
-  amount: number;            // in Naira — converted to kobo (×100) internally
-  publicKey: string;
-  metadata?: SquadMetadata;  // custom data returned in webhook
-  disabled?: boolean;
-  children: React.ReactNode;
-  onSuccess?: (transactionRef: string) => void;
+  amount: number;
+  currencyCode?: "NGN";
+  publicKey?: string;
+  customerName?: string;
+  transactionRef?: string;
+  metadata?: SquadMetadata;
+  children?: React.ReactNode;
+  onSuccess?: (verification: SquadVerifyResponse) => void;
   onClose?: () => void;
+  onVerifyError?: (err: Error) => void;
+  label?: string;
+  disabled?: boolean;
 }
 
-const SQUAD_SCRIPT = "https://checkout.squadco.com/widget/squad.min.js";
 
 function isValidEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
-function loadSquadScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // Already loaded
-    if (typeof window.squad !== "undefined") {
-      resolve();
-      return;
-    }
-    // Script tag already in DOM (still loading)
-    const existing = document.querySelector<HTMLScriptElement>(
-      `script[src="${SQUAD_SCRIPT}"]`
-    );
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () =>
-        reject(new Error("DOMAIN_NOT_WHITELISTED"))
-      );
-      return;
-    }
-    // Fresh load
-    const script = document.createElement("script");
-    script.src = SQUAD_SCRIPT;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("DOMAIN_NOT_WHITELISTED"));
-    document.body.appendChild(script);
-  });
-}
 
 export default function SquadPayButton({
   email,
   amount,
+  currencyCode = "NGN",
   publicKey,
+  customerName,
+  transactionRef,
   metadata,
-  disabled,
   children,
   onSuccess,
   onClose,
+  onVerifyError,
+  label = "Pay Now",
+  disabled = false,
 }: SquadPayButtonProps) {
-  const [loading, setLoading] = useState(false);
-  const busyRef = useRef(false);
+  const scriptLoaded = useSquadScript();
 
-  // Pre-load the script as soon as the button mounts so it is ready on first click
-  useEffect(() => {
-    loadSquadScript().catch(() => {
-      // Silently ignore pre-load failures; the click handler will surface the error
-    });
-  }, []);
+  const [verifying, setVerifying] = useState(false);
+
 
   async function handlePayment() {
-    if (busyRef.current || disabled) return;
-
-    if (!publicKey) {
-      toast.error("Payment not configured — contact support.");
+    if (!scriptLoaded || typeof window.squad === "undefined") {
+      console.log("Squad script not loaded yet");
       return;
     }
+
     if (!email || !isValidEmail(email)) {
       toast.error("A valid email address is required.");
       return;
@@ -110,68 +82,56 @@ export default function SquadPayButton({
       return;
     }
 
-    busyRef.current = true;
-    setLoading(true);
+    const resolvedKey = publicKey || process.env.NEXT_PUBLIC_SQUAD_PUBLIC_KEY!;
 
-    try {
-      await loadSquadScript();
-    } catch {
-      busyRef.current = false;
-      setLoading(false);
-      toast.error(
-        "Payment widget failed to load. " +
-        "Please add this domain to your Squad dashboard → Settings → Allowed Domains, then refresh."
-      );
-      return;
-    }
-
-    setLoading(false);
-
-    // Open the Squad checkout widget exactly as documented
     const squadInstance = new window.squad({
-      key: publicKey,
+      key: resolvedKey,
       email,
-      amount: amount * 100,   // kobo
-      currency_code: "NGN",
-      customer_name: email,   // will be replaced by actual name if Squad has it
-      ...(metadata ? { metadata } : {}),
-      onLoad: () => {
-        // Widget is visible
-      },
+      amount: amount * 100, // kobo
+      currency_code: currencyCode,
+      customer_name: customerName,
+      transaction_ref: transactionRef,
+      metadata,
+      onLoad: () => console.log("Squad modal ready"),
       onClose: () => {
-        busyRef.current = false;
         onClose?.();
       },
-      onSuccess: async (response: { transaction_ref?: string }) => {
-        busyRef.current = false;
-        const ref = response?.transaction_ref ?? "";
+      onSuccess: async (data: SquadSuccessData) => {
+        const ref = data.transaction_ref ?? transactionRef;
 
         // Verify the transaction server-side before celebrating
-        if (ref) {
-          try {
-            const res = await fetch(`/api/squad/verify?ref=${encodeURIComponent(ref)}`);
-            const data = await res.json();
-            const status = (
-              data?.data?.transaction_status ??
-              data?.transaction_status ??
-              ""
-            ).toLowerCase();
-
-            if (status === "success") {
-              toast.success("Payment successful! Your contribution has been recorded.");
-              onSuccess?.(ref);
-              setTimeout(() => window.location.reload(), 1500);
-              return;
-            }
-          } catch {
-            // Verification failed — fall through to generic success
-          }
+        if (!ref) { 
+           console.error("Squad: no transaction ref in onSuccess payload");
+           return;
         }
+        setVerifying(true);
 
-        // Webhook will record it regardless — reload so dashboard reflects new data
-        toast.success("Payment received! Dashboard will update shortly.");
-        onSuccess?.(ref);
-        setTimeout(() => window.location.reload(), 2000);
+
+
+          try {
+            const verification = await verifySquadPayment(ref);
+            
+          if (verification.success && verification.data?.transaction_status === "success") {
+            toast.success("Payment successful! Your contribution has been recorded.");
+            onSuccess?.(verification);
+          } else {
+            const err = new Error(
+              `Payment verification failed: ${verification.message}`,
+            );
+            onVerifyError?.(err);
+            toast.error(err.message);
+          }
+
+          } catch (err) {
+            // Verification failed — fall through to generic success
+            const error = err instanceof Error ? err : new Error('Verification error');
+            onVerifyError?.(error);
+            toast.error(error.message);
+            console.error("Verification error:", error.message);
+          } finally {
+            setVerifying(false);
+            
+          }
       },
     });
 
@@ -179,20 +139,22 @@ export default function SquadPayButton({
     squadInstance.open();
   }
 
+    const isReady = scriptLoaded && !disabled && !verifying;
+
+
   return (
     <button
       onClick={handlePayment}
-      disabled={disabled || !publicKey || loading}
-      className="w-full h-12 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-    >
-      {loading ? (
+      disabled={!isReady}
+      aria-busy={verifying}
+      className='w-full h-12 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'>
+      {verifying ? (
         <>
-          <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-          Opening payment…
+          <span className='h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin' />
+          verifying…
         </>
-      ) : (
-        children
-      )}
+      ) : !scriptLoaded ? "Loading..." : (children ?? label)
+      }
     </button>
   );
 }
