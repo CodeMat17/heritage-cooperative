@@ -27,6 +27,7 @@ export interface SquadMetadata extends Record<string, unknown> {
 
 interface SquadPayButtonProps {
   email: string;
+  phoneNumber?: string;
   amount: number;
   currencyCode?: "NGN";
   publicKey?: string;
@@ -50,6 +51,7 @@ function isValidEmail(v: string) {
 export default function SquadPayButton({
   email,
   amount,
+  phoneNumber,
   currencyCode = "NGN",
   publicKey,
   customerName,
@@ -91,6 +93,7 @@ export default function SquadPayButton({
     const squadInstance = new window.squad({
       key: resolvedKey,
       email,
+      phone_number: phoneNumber,
       amount: amount * 100, // kobo
       currency_code: currencyCode,
       customer_name: customerName,

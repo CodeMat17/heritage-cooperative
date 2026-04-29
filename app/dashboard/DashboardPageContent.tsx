@@ -200,11 +200,13 @@ const DAY_PRESETS = [1, 2, 3, 5, 7, 14, 30];
 
 function ContributionPaySection({
   email,
+  phoneNumber,
   dailyAmount,
   contributions,
   publicKey,
 }: {
   email: string;
+  phoneNumber: string;
   dailyAmount: number;
   contributions: Contribution[];
   publicKey: string;
@@ -333,6 +335,7 @@ function ContributionPaySection({
       {/* Pay button */}
       <SquadPayButton
         email={email}
+        phoneNumber={phoneNumber}
         amount={totalAmount}
         publicKey={publicKey}
         metadata={metadata}
@@ -611,6 +614,7 @@ export default function DashboardPageContent() {
         </div>
         <ContributionPaySection
           email={me.email}
+          phoneNumber={me.mobilePhoneNumber}
           dailyAmount={pkg.daily}
           contributions={typedContributions}
           publicKey={publicKey}

@@ -6,6 +6,7 @@ export interface SquadConfig {
   currency_code: "NGN" | "USD";
   transaction_ref?: string;
   customer_name?: string;
+  phone_number?: string;
   callback_url?: string;
   payment_channels?: Array<"card" | "bank" | "ussd" | "transfer">;
   pass_charge?: boolean;
