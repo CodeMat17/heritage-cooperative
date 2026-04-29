@@ -339,7 +339,15 @@ function ContributionPaySection({
         amount={totalAmount}
         publicKey={publicKey}
         metadata={metadata}
-        onSuccess={() => {}}
+        onSuccess={(verification) => {
+          const ref = verification.data?.transaction_ref;
+          if (!ref) return;
+          fetch("/api/contributions/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ transactionRef: ref }),
+          }).catch((err) => console.error("contributions/confirm error:", err));
+        }}
       >
         Pay {naira(totalAmount)} for {selectedDays} {selectedDays === 1 ? "day" : "days"}
       </SquadPayButton>
