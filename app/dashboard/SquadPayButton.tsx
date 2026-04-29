@@ -13,7 +13,7 @@ import { SquadSuccessData, SquadVerifyResponse } from "@/types/squad";
  * IMPORTANT — before this works you must:
  * 1. Add your domain to Squad dashboard → Settings → API Keys & Webhooks → Allowed Domains
  *    (add both "localhost:3000" for dev and "heritage-cooperative.com.ng" for production)
- * 2. Set SQUAD_PUBLIC_KEY in your .env.local
+ * 2. Set NEXT_PUBLIC_SQUAD_PUBLIC_KEY in your .env.local
  * 3. Point your Squad webhook URL to: https://<your-domain>/api/webhooks/squad
  */
 
@@ -82,7 +82,11 @@ export default function SquadPayButton({
       return;
     }
 
-    const resolvedKey = publicKey || process.env.NEXT_PUBLIC_SQUAD_PUBLIC_KEY!;
+    const resolvedKey = publicKey;
+    if (!resolvedKey) {
+      toast.error("Payment configuration is missing. Please refresh and try again.");
+      return;
+    }
 
     const squadInstance = new window.squad({
       key: resolvedKey,
