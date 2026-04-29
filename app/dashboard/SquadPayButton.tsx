@@ -90,10 +90,16 @@ export default function SquadPayButton({
       return;
     }
 
+    const normalizedPhone = phoneNumber
+      ? phoneNumber.startsWith("+")
+        ? phoneNumber
+        : "+234" + phoneNumber.replace(/^0/, "")
+      : undefined;
+
     const squadInstance = new window.squad({
       key: resolvedKey,
       email,
-      phone_number: phoneNumber,
+      phone_number: normalizedPhone,
       amount: amount * 100, // kobo
       currency_code: currencyCode,
       customer_name: customerName,
