@@ -18,7 +18,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type PackageId = "bronze" | "silver" | "gold" | "diamond" | "emerald";
 
@@ -212,6 +212,17 @@ function ContributionPaySection({
   publicKey: string;
 }) {
   const [selectedDays, setSelectedDays] = useState(1);
+  const [pendingPayment, setPendingPayment] = useState(false);
+  const prevCountRef = useRef(contributions.length);
+  const pendingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (pendingPayment && contributions.length > prevCountRef.current) {
+      setPendingPayment(false);
+      if (pendingTimeoutRef.current) clearTimeout(pendingTimeoutRef.current);
+    }
+    prevCountRef.current = contributions.length;
+  }, [contributions, pendingPayment]);
 
   const paidDates = getAllPaidDates(contributions);
   const today = todayStr();
@@ -342,6 +353,11 @@ function ContributionPaySection({
         onSuccess={(verification) => {
           const ref = verification.data?.transaction_ref;
           if (!ref) return;
+
+          setPendingPayment(true);
+          // Safety: clear pending after 30s in case the webhook/confirm never lands
+          pendingTimeoutRef.current = setTimeout(() => setPendingPayment(false), 30_000);
+
           fetch("/api/contributions/confirm", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -351,6 +367,15 @@ function ContributionPaySection({
       >
         Pay {naira(totalAmount)} for {selectedDays} {selectedDays === 1 ? "day" : "days"}
       </SquadPayButton>
+
+      {pendingPayment && (
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-600/10 border border-emerald-600/20 px-4 py-3">
+          <span className="h-4 w-4 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin flex-shrink-0" />
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">
+            Recording your payment… your dashboard will update shortly.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
